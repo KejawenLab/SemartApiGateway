@@ -1,0 +1,34 @@
+{
+    "name": "kejawenlab/semart-api-gateway",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": "^7.2",
+        "ext-ctype": "*",
+        "ext-curl": "*",
+        "ext-iconv": "*",
+        "ext-json": "*",
+        "ext-redis": "*",
+        "pimple/pimple": "^3.0",
+        "symfony/config": "^5.1",
+        "symfony/http-client": "^5.1",
+        "symfony/http-foundation": "^5.1",
+        "symfony/http-kernel": "^5.1",
+        "symfony/routing": "^5.1",
+        "symfony/yaml": "^5.1",
+        "webmozart/assert": "^1.9"
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": {
+            "*": "dist"
+        },
+        "sort-packages": true
+    },
+    "autoload": {
+        "psr-4": {
+            "KejawenLab\\SemartApiGateway\\": "src/"
+        },
+        "files": ["src/functions.php"]
+    }
+}

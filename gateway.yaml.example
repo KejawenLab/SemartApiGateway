@@ -1,0 +1,64 @@
+gateway:
+    prefix: /api
+    host: https://arsiteknologi.com:8080
+    auth:
+        host: https://arsiteknologi.com:8080
+        login:
+            path: /login
+            method: POST
+        verify:
+            path: /me
+            method: GET
+        header: X-Semart-User
+        token:
+            key: token
+            lifetime: 3600
+        credential:
+            type: json
+            username:
+                field: username
+                value: admin
+            password:
+                field: password
+                value: admin
+    services:
+        service1:
+            host: https://arsiteknologi.com:8080
+            weight: 7
+        service2:
+            host: https://arsiteknologi.com:8080
+            limit: 1000
+            weight: 5
+        service3:
+            host: https://arsiteknologi.com:8080
+        service4:
+            host: https://arsiteknologi.com:8080
+            version: null
+            health_check_path: /status
+            limit: 1000
+            weight: 1
+    routes:
+        route1:
+            path: /me
+            methods: [GET]
+            priority: 0
+            public: false
+            cache_lifetime: 5
+            balance: roundrobin
+            handlers:
+                - service1
+                - service2
+        route2:
+            path: /settings
+            methods: [POST]
+            public: false
+            handlers:
+                - service3
+                - service4
+        route3:
+            path: /medias/{path}
+            requirements:
+                path: .+
+            handlers:
+                - service3
+                - service4
