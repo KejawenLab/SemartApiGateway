@@ -22,13 +22,11 @@ final class AuthenticationHandler
 
     private $login;
 
-    private $verify;
-
     private $token;
 
     private $credential;
 
-    public function __construct(\Redis $redis, string $host, array $login, array $verify, array $token, array $credential)
+    public function __construct(\Redis $redis, string $host, array $login, array $token, array $credential)
     {
         $this->redis = $redis;
         $this->host = $host;
@@ -36,10 +34,6 @@ final class AuthenticationHandler
         Assert::keyExists($login, 'path');
         Assert::keyExists($login, 'method');
         $this->login = $login;
-
-        Assert::keyExists($verify, 'path');
-        Assert::keyExists($verify, 'method');
-        $this->verify = $verify;
 
         Assert::keyExists($token, 'key');
         Assert::keyExists($token, 'lifetime');

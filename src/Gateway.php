@@ -248,14 +248,12 @@ final class Gateway extends Container implements HttpKernelInterface
             }
 
             Assert::keyExists($config['gateway']['auth'], 'login');
-            Assert::keyExists($config['gateway']['auth'], 'verify');
             Assert::keyExists($config['gateway']['auth'], 'token');
             Assert::keyExists($config['gateway']['auth'], 'credential');
 
             return new AuthenticationHandler(
                 $c['gateway.cache'], sprintf('%s%s', $host, $this['gateway.prefix']),
                 $config['gateway']['auth']['login'],
-                $config['gateway']['auth']['verify'],
                 $config['gateway']['auth']['token'],
                 $config['gateway']['auth']['credential']
             );

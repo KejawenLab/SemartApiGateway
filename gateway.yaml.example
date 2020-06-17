@@ -6,9 +6,6 @@ gateway:
         login:
             path: /login
             method: POST
-        verify:
-            path: /me
-            method: GET
         token:
             key: token
             lifetime: 3600
