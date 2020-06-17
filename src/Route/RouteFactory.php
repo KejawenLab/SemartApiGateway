@@ -11,7 +11,7 @@ use Webmozart\Assert\Assert;
  */
 final class RouteFactory
 {
-    private const CACHE_KEY = '1d24fe1d841f18d70849097eb5e4d0b57a1c5b18';
+    private const CACHE_KEY = '28e43937becaea8523f5522bea5b38c789ed23d4';
 
     private $redis;
 
@@ -23,12 +23,16 @@ final class RouteFactory
     public function __construct(\Redis $redis)
     {
         $this->redis = $redis;
+        $this->routes = [];
     }
 
     public function populate(): void
     {
-        $routes = $this->redis->get(static::CACHE_KEY);
-        foreach ($routes as $route) {
+        if (!$routes = $this->redis->get(static::CACHE_KEY)) {
+            return;
+        }
+
+        foreach (unserialize($routes) as $route) {
             $this->addRoute(Route::createFromArray($route));
         }
     }
@@ -40,7 +44,7 @@ final class RouteFactory
             $routes[] = $route->toArray();
         }
 
-        $this->redis->set(static::CACHE_KEY, $routes);
+        $this->redis->set(static::CACHE_KEY, serialize($routes));
         app()->pool(static::CACHE_KEY);
     }
 

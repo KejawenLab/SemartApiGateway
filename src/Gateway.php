@@ -57,7 +57,7 @@ final class Gateway extends Container implements HttpKernelInterface
         /** @var RouteFactory $routeFactory */
         $routeFactory = $this['gateway.route_factory'];
         foreach ($routeFactory->routes() as $route) {
-            $routeCollection->add($route->getName(), new SymfonyRoute($route->getPath(),[], $route->getRequirements(), [], null, [], $route->getMethods()), $route->getPriority());
+            $routeCollection->add($route->getName(), new SymfonyRoute(sprintf('%s%s', $this['gateway.prefix'], $route->getPath()),[], $route->getRequirements(), [], null, [], $route->getMethods()), $route->getPriority());
         }
 
         $matcher = new UrlMatcher($routeCollection, new RequestContext());
@@ -65,7 +65,6 @@ final class Gateway extends Container implements HttpKernelInterface
 
         /** @var RequestHandler $requestHandler */
         $requestHandler = $this['gateway.request_handler'];
-        $requestHandler->handle($match['_route'], $request);
 
         return $requestHandler->handle($match['_route'], $request);
     }
@@ -75,7 +74,16 @@ final class Gateway extends Container implements HttpKernelInterface
         if (!$this['gateway.cacheable']) {
             $this->clean();
 
-            $config = serialize(Yaml::parse(file_get_contents(sprintf('%s/gateway.yaml', GATEWAY_ROOT))));
+            $gateway = Yaml::parse(file_get_contents(sprintf('%s/gateway.yaml', GATEWAY_ROOT)));
+            $routes = Yaml::parse(file_get_contents(sprintf('%s/routes.yaml', GATEWAY_ROOT)));
+
+            Assert::keyExists($gateway, 'gateway');
+            Assert::keyExists($routes, 'gateway');
+            Assert::keyExists($routes['gateway'], 'routes');
+
+            $gateway['gateway']['routes'] = $routes['gateway']['routes'];
+
+            $config = serialize($gateway);
 
             $this['gateway.cache']->set(static::CONFIG_KEY, $config);
         } else {
@@ -161,7 +169,7 @@ final class Gateway extends Container implements HttpKernelInterface
                     $weight = $service['weight'];
                 }
 
-                $factory->addService(new Service($name, $host, $healthCheck, $version, $limit, $weight));
+                $factory->addService(new Service($name, sprintf('%s%s', $host, $this['gateway.prefix']), $healthCheck, $version, $limit, $weight));
             }
 
             return $factory;
@@ -221,7 +229,7 @@ final class Gateway extends Container implements HttpKernelInterface
                     $cacheLifetime = (int) $route['cache_lifetime'];
                 }
 
-                $factory->addRoute(new Route($name, sprintf('%s%s', $this['gateway.prefix'], $route['path']), $handlers, $methods, $balance, $priority, $public, $requirements, $cacheLifetime));
+                $factory->addRoute(new Route($name, $route['path'], $handlers, $methods, $balance, $priority, $public, $requirements, $cacheLifetime));
             }
 
             return $factory;
@@ -239,23 +247,17 @@ final class Gateway extends Container implements HttpKernelInterface
                 $host = $config['gateway']['host'];
             }
 
-            $header = AuthenticationHandler::HEADER;
-            if (array_key_exists('header', $config['gateway']['auth'])) {
-                $header = $config['gateway']['auth']['header'];
-            }
-
             Assert::keyExists($config['gateway']['auth'], 'login');
             Assert::keyExists($config['gateway']['auth'], 'verify');
             Assert::keyExists($config['gateway']['auth'], 'token');
             Assert::keyExists($config['gateway']['auth'], 'credential');
 
             return new AuthenticationHandler(
-                $c['gateway.cache'], $host,
+                $c['gateway.cache'], sprintf('%s%s', $host, $this['gateway.prefix']),
                 $config['gateway']['auth']['login'],
                 $config['gateway']['auth']['verify'],
                 $config['gateway']['auth']['token'],
-                $config['gateway']['auth']['credential'],
-                $header
+                $config['gateway']['auth']['credential']
             );
         };
     }

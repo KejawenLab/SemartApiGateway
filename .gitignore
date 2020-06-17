@@ -1,2 +1,5 @@
 .idea
 vendor
+gateway.yaml
+routes.yaml
+public/index.php

@@ -23,12 +23,16 @@ final class ServiceFactory
     public function __construct(\Redis $redis)
     {
         $this->redis = $redis;
+        $this->services = [];
     }
 
     public function populate(): void
     {
-        $services = $this->redis->get(static::CACHE_KEY);
-        foreach ($services as $service) {
+        if (!$services = $this->redis->get(static::CACHE_KEY)) {
+            return;
+        }
+
+        foreach (unserialize($services) as $service) {
             $this->addService(Service::createFromArray($service));
         }
     }
@@ -40,7 +44,7 @@ final class ServiceFactory
             $services[] = $service->toArray();
         }
 
-        $this->redis->set(static::CACHE_KEY, $services);
+        $this->redis->set(static::CACHE_KEY, serialize($services));
 
         app()->pool(static::CACHE_KEY);
     }

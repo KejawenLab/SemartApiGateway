@@ -48,20 +48,13 @@ final class RequestHandler
         if (!$route->isPublic()) {
             if ($auth = $request->headers->get('Authorization')) {
                 $options['headers']['Authorization'] = $auth;
-
-                $token = explode(' ', $auth);
-                if (2 === count($token)) {
-                    $token = $token[1];
-                } else {
-                    $token = $token[0];
-                }
-
-                $options['headers'][$this->authenticationHandler->getHeader()] = json_encode($this->authenticationHandler->getUserCredential($token));
+            } else {
+                $options['headers']['Authorization'] = sprintf('Bearer %s', $this->authenticationHandler->getAccessToken());
             }
         }
 
         try {
-            $key = sha1(serialize($options));
+            $key = sha1(sprintf('%s_%s', $route->getPath(), serialize($options)));
             $statusCode = 200;
             if (!$data = $this->redis->get($key)) {
                 $client = HttpClient::create();
@@ -79,7 +72,6 @@ final class RequestHandler
                 if (Request::METHOD_GET && $request->getMethod() && Response::HTTP_OK === $response->getStatusCode()) {
                     $this->redis->set($key, $data);
                     $this->redis->expire($key, $route->getCacheLifetime());
-                    app()->pool($key);
                 }
             }
 
@@ -88,7 +80,6 @@ final class RequestHandler
             return new Response($data['content'], $statusCode, ['content-type' => $data['content-type']]);
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);
-            dump($this->serviceFactory);
 
             return $this->handle($routeName, $request);
         } catch (NoServiceAvailableException $e) {

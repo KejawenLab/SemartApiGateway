@@ -1,0 +1,26 @@
+gateway:
+    routes:
+        route1:
+            path: /me
+            methods: [GET]
+            priority: 0
+            public: false
+            cache_lifetime: 5
+            balance: roundrobin
+            handlers:
+                - service1
+                - service2
+        route2:
+            path: /settings
+            methods: [POST]
+            public: false
+            handlers:
+                - service3
+                - service4
+        route3:
+            path: /medias/{path}
+            requirements:
+                path: .+
+            handlers:
+                - service3
+                - service4
