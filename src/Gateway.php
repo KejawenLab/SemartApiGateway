@@ -9,6 +9,7 @@ use KejawenLab\SemartApiGateway\Handler\HandlerInterface;
 use KejawenLab\SemartApiGateway\Handler\RandomHandler;
 use KejawenLab\SemartApiGateway\Handler\RoundRobinHandler;
 use KejawenLab\SemartApiGateway\Handler\StickyHandler;
+use KejawenLab\SemartApiGateway\Handler\WeightHandler;
 use KejawenLab\SemartApiGateway\Request\AuthenticationHandler;
 use KejawenLab\SemartApiGateway\Request\RequestHandler;
 use KejawenLab\SemartApiGateway\Route\Route;
@@ -60,7 +61,7 @@ final class Gateway extends Container implements HttpKernelInterface
         /** @var RouteFactory $routeFactory */
         $routeFactory = $this['gateway.route_factory'];
         foreach ($routeFactory->routes() as $route) {
-            $routeCollection->add($route->getName(), new SymfonyRoute(sprintf('%s%s', $this['gateway.prefix'], $route->getPath()),[], $route->getRequirements(), [], null, [], $route->getMethods()), $route->getPriority());
+            $routeCollection->add($route->getName(), new SymfonyRoute(sprintf('%s%s', $this['gateway.prefix'], $route->getPath()), [], $route->getRequirements(), [], null, [], $route->getMethods()), $route->getPriority());
         }
 
         $matcher = new UrlMatcher($routeCollection, new RequestContext());
@@ -90,7 +91,8 @@ final class Gateway extends Container implements HttpKernelInterface
 
             $this['gateway.cache']->set(static::CONFIG_KEY, $config);
         } else {
-            $config = $this['gateway.cache']->get(static::CONFIG_KEY);;
+            $config = $this['gateway.cache']->get(static::CONFIG_KEY);
+            ;
         }
 
         $config = unserialize($config);
@@ -115,19 +117,28 @@ final class Gateway extends Container implements HttpKernelInterface
         };
 
         $this['gateway.handler.random'] = function ($c) {
-            return new RandomHandler($c['gateway.service_factory']);
+            return new RandomHandler();
         };
 
         $this['gateway.handler.roundrobin'] = function ($c) {
-            return new RoundRobinHandler($c['gateway.service_factory']);
+            return new RoundRobinHandler();
         };
 
         $this['gateway.handler.sticky'] = function ($c) {
-            return new StickyHandler($c['gateway.service_factory']);
+            return new StickyHandler();
+        };
+
+        $this['gateway.handler.weight'] = function ($c) {
+            return new WeightHandler();
         };
 
         $this['gateway.handler_factory'] = function ($c) {
-            return new HandlerFactory([$c['gateway.handler.roundrobin'], $c['gateway.handler.random'], $this['gateway.handler.sticky'], ]);
+            return new HandlerFactory([
+                $c['gateway.handler.roundrobin'],
+                $c['gateway.handler.random'],
+                $this['gateway.handler.sticky'],
+                $this['gateway.handler.weight'],
+            ]);
         };
 
         $this['gateway.service_resolver'] = function ($c) {
@@ -275,7 +286,8 @@ final class Gateway extends Container implements HttpKernelInterface
             $c['gateway.auth_cache_lifetime'] = $config['gateway']['auth']['token']['lifetime'];
 
             return new AuthenticationHandler(
-                $c['gateway.cache'], sprintf('%s%s', $host, $c['gateway.prefix']),
+                $c['gateway.cache'],
+                sprintf('%s%s', $host, $c['gateway.prefix']),
                 $config['gateway']['auth']['login'],
                 $config['gateway']['auth']['token'],
                 $config['gateway']['auth']['credential']

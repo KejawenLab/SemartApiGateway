@@ -6,20 +6,12 @@ namespace KejawenLab\SemartApiGateway\Handler;
 
 use KejawenLab\SemartApiGateway\Route\Route;
 use KejawenLab\SemartApiGateway\Service\Service;
-use KejawenLab\SemartApiGateway\Service\ServiceFactory;
 
 /**
  * @author Muhamad Surya Iksanudin<surya.kejawen@gmail.com>
  */
 final class RandomHandler implements HandlerInterface
 {
-    private $serviceFactory;
-
-    public function __construct(ServiceFactory $serviceFactory)
-    {
-        $this->serviceFactory = $serviceFactory;
-    }
-
     public function handle(Route $route): ?Service
     {
         return $this->getService($route, $this->getIndex($route));
@@ -34,7 +26,6 @@ final class RandomHandler implements HandlerInterface
     {
         $service = $route->getHandler($index);
         if ($service) {
-            $service = $this->serviceFactory->get($service->getName());
             $route->setCurrentHandler($index);
             if (!$service->isEnabled()) {
                 return $this->getService($route, $this->getIndex($route));

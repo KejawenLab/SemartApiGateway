@@ -53,11 +53,15 @@ final class ServiceFactory
     {
         Assert::keyExists($this->services, $name, 'Service "%s" not found.');
 
-        $service = $this->services[$name];
-        $service->hit();
-        $this->addService($service);
+        return $this->services[$name];
+    }
 
-        return $service;
+    /**
+     * @return Service[]
+     */
+    public function getServices(): array
+    {
+        return $this->services;
     }
 
     public function down(Service $service): void

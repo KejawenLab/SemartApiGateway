@@ -33,6 +33,8 @@ class Route
 
     private $currentHandler;
 
+    private $sorted;
+
     public function __construct(
         string $name,
         string $path,
@@ -42,7 +44,9 @@ class Route
         int $priority = 0,
         bool $public = false,
         array $requirements = [],
-        int $cacheLifetime = 0
+        int $currentHandler = 0,
+        int $cacheLifetime = 0,
+        bool $sorted = false
     ) {
         $this->name = $name;
         $this->path = $path;
@@ -51,8 +55,9 @@ class Route
         $this->priority = $priority;
         $this->public = $public;
         $this->requirements = $requirements;
+        $this->currentHandler = $currentHandler;
         $this->cacheLifetime = $cacheLifetime;
-        $this->currentHandler = null;
+        $this->sorted = $sorted;
 
         foreach ($handlers as $handler) {
             $this->addHandler($handler);
@@ -71,7 +76,9 @@ class Route
         $priority = 1;
         $public = false;
         $requirements = [];
+        $currentHandler = 0;
         $cacheLifetime = 0;
+        $sorted = false;
 
         if (array_key_exists('methods', $route) && is_array($route['methods'])) {
             $methods = $route['methods'];
@@ -101,11 +108,19 @@ class Route
             $requirements = $route['requirements'];
         }
 
+        if (array_key_exists('current_handler', $route) && is_int($route['current_handler'])) {
+            $currentHandler = $route['current_handler'];
+        }
+
         if (array_key_exists('cache_lifetime', $route) && is_int($route['cache_lifetime'])) {
             $cacheLifetime = $route['cache_lifetime'];
         }
 
-        return new self($route['name'], $route['path'], $route['handlers'], $methods, $balanceMethod, $priority, $public, $requirements, $cacheLifetime);
+        if (array_key_exists('sorted', $route) && is_bool($route['sorted'])) {
+            $sorted = $route['sorted'];
+        }
+
+        return new self($route['name'], $route['path'], $route['handlers'], $methods, $balanceMethod, $priority, $public, $requirements, $currentHandler, $cacheLifetime, $sorted);
     }
 
     public function toArray(): array
@@ -120,6 +135,8 @@ class Route
             'public' => $this->isPublic(),
             'requirements' => $this->getRequirements(),
             'cache_lifetime' => $this->getCacheLifetime(),
+            'current_handler' => $this->getCurrentHandler(),
+            'sorted' => $this->isSorted(),
         ];
     }
 
@@ -165,12 +182,22 @@ class Route
 
     public function getCurrentHandler(): int
     {
-        return $this->currentHandler ?? -1;
+        return $this->currentHandler ?? 0;
     }
 
     public function setCurrentHandler(int $index): void
     {
         $this->currentHandler = $index;
+    }
+
+    public function isSorted(): bool
+    {
+        return $this->sorted;
+    }
+
+    public function sorted(): void
+    {
+        $this->sorted = true;
     }
 
     public function getHandler(int $index): ?Service
@@ -188,11 +215,19 @@ class Route
      */
     public function getHandlers(): array
     {
-        return array_values($this->handlers);
+        return $this->handlers;
+    }
+
+    public function setHandlers(array $handlers): void
+    {
+        $this->handlers = [];
+        foreach ($handlers as $handler) {
+            $this->addHandler($handler);
+        }
     }
 
     private function addHandler(Service $service): void
     {
-        $this->handlers[$service->getName()] = $service;
+        $this->handlers[] = $service;
     }
 }

@@ -51,7 +51,6 @@ class Service
         $version = null;
         $limit = -1;
         $weight = 1;
-        $enabled = true;
 
         if (array_key_exists('version', $service)) {
             $version = $service['version'];
@@ -65,11 +64,7 @@ class Service
             $weight = $service['weight'];
         }
 
-        if (array_key_exists('enabled', $service) && is_bool($service['enabled'])) {
-            $enabled = $service['enabled'];
-        }
-
-        return new self($service['name'], $service['host'], $service['health_check_path'], $version, $limit, $weight, $enabled);
+        return new self($service['name'], $service['host'], $service['health_check_path'], $version, $limit, $weight);
     }
 
     public function toArray(): array
@@ -124,7 +119,7 @@ class Service
 
     public function isEnabled(): bool
     {
-        return $this->enabled || !$this->down || $this->limit > $this->hit;
+        return $this->enabled || $this->isDown() || $this->isLimit();
     }
 
     public function isDown(): bool
@@ -164,7 +159,7 @@ class Service
 
     public function isLimit(): bool
     {
-        return $this->limit <= $this->hit;
+        return -1 !== $this->limit && $this->limit <= $this->hit;
     }
 
     public function resetHit(): void
