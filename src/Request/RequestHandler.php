@@ -81,9 +81,14 @@ final class RequestHandler
                     'content-type' => $headers['content-type'],
                 ]);
 
-                if ($request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
+                if (app()['gateway.verify_path'] === $request->getPathInfo()) {
+                    $this->redis->set($key, $data);
+                    $this->redis->expire($key, app()['gateway.auth_cache_lifetime']);
+                    app()->pool($key);
+                } elseif ($request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
                     $this->redis->set($key, $data);
                     $this->redis->expire($key, $route->getCacheLifetime());
+                    app()->pool($key);
                 }
             }
 

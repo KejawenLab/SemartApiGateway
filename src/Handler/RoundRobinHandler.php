@@ -27,9 +27,9 @@ final class RoundRobinHandler implements HandlerInterface
         return $this->getService($route, ++$current);
     }
 
-    public function support(Route $route): bool
+    public function getName(): string
     {
-        return self::BALANCE_ROUNDROBIN === $route->getBalanceMethod();
+        return self::BALANCE_ROUNDROBIN;
     }
 
     private function getService(Route $route, int $index): ?Service

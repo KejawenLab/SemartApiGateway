@@ -20,6 +20,10 @@ Semart Api Gateway is Fast, Simple Yet Powerful API Gateway base on Symfony Comp
 
 ![Screenshot](response.png)
 
+>
+> Screenshot use [SemartApiSkeleton](https://github.com/KejawenLab/SemartApiSkeleton) demo on my Digital Ocean VPS with 1 GB of RAM
+>
+
 ## Install
 
 ```bash

@@ -25,9 +25,9 @@ final class StickyHandler implements HandlerInterface
         return $this->getService($route, 0);
     }
 
-    public function support(Route $route): bool
+    public function getName(): string
     {
-        return self::BALANCE_RANDOM === $route->getBalanceMethod();
+        return self::BALANCE_STICKY;
     }
 
     private function getService(Route $route, int $index): ?Service

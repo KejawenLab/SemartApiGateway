@@ -26,10 +26,10 @@ final class HandlerFactory
 
     public function handle(Route $route): ?Service
     {
-        foreach ($this->handlers as $handler) {
-            if ($handler->support($route)) {
-                return $handler->handle($route);
-            }
+        if (array_key_exists($route->getBalanceMethod(), $this->handlers)) {
+            $handler = $this->handlers[$route->getBalanceMethod()];
+
+            return $handler->handle($route);
         }
 
         throw new CanNotHandleRouteException();
@@ -37,6 +37,6 @@ final class HandlerFactory
 
     private function addHandler(HandlerInterface $handler): void
     {
-        $this->handlers[] = $handler;
+        $this->handlers[$handler->getName()] = $handler;
     }
 }

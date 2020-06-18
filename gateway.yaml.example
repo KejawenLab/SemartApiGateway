@@ -7,6 +7,7 @@ gateway:
         login:
             path: /login
             method: POST
+        verify_path: /me #mostly profile path
         token:
             key: token
             lifetime: 3600

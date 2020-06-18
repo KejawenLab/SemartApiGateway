@@ -6,7 +6,7 @@ gateway:
             priority: 0
             public: false
             cache_lifetime: 5
-            balance: roundrobin
+            balance: roundrobin # roundrobin | random | sticky (master/slave)
             handlers:
                 - service1
                 - service2

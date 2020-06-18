@@ -12,6 +12,8 @@ use KejawenLab\SemartApiGateway\Service\Service;
  */
 interface HandlerInterface
 {
+    public const BALANCE_STICKY = 'sticky';
+
     public const BALANCE_RANDOM = 'random';
 
     public const BALANCE_ROUNDROBIN = 'roundrobin';
@@ -20,5 +22,5 @@ interface HandlerInterface
 
     public function handle(Route $route): ?Service;
 
-    public function support(Route $route): bool;
+    public function getName(): string;
 }

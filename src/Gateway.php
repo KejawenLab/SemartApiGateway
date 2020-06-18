@@ -188,7 +188,7 @@ final class Gateway extends Container implements HttpKernelInterface
                     $weight = $service['weight'];
                 }
 
-                $factory->addService(new Service($name, sprintf('%s%s', $host, $this['gateway.prefix']), $healthCheck, $version, $limit, $weight));
+                $factory->addService(new Service($name, sprintf('%s%s', $host, $c['gateway.prefix']), $healthCheck, $version, $limit, $weight));
             }
 
             return $factory;
@@ -267,11 +267,15 @@ final class Gateway extends Container implements HttpKernelInterface
             }
 
             Assert::keyExists($config['gateway']['auth'], 'login');
+            Assert::keyExists($config['gateway']['auth'], 'verify_path');
             Assert::keyExists($config['gateway']['auth'], 'token');
             Assert::keyExists($config['gateway']['auth'], 'credential');
 
+            $c['gateway.verify_path'] = sprintf('%s%s', $c['gateway.prefix'], $config['gateway']['auth']['verify_path']);
+            $c['gateway.auth_cache_lifetime'] = $config['gateway']['auth']['token']['lifetime'];
+
             return new AuthenticationHandler(
-                $c['gateway.cache'], sprintf('%s%s', $host, $this['gateway.prefix']),
+                $c['gateway.cache'], sprintf('%s%s', $host, $c['gateway.prefix']),
                 $config['gateway']['auth']['login'],
                 $config['gateway']['auth']['token'],
                 $config['gateway']['auth']['credential']

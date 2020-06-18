@@ -25,9 +25,9 @@ final class RandomHandler implements HandlerInterface
         return $this->getService($route, $this->getIndex($route));
     }
 
-    public function support(Route $route): bool
+    public function getName(): string
     {
-        return self::BALANCE_RANDOM === $route->getBalanceMethod();
+        return self::BALANCE_RANDOM;
     }
 
     private function getService(Route $route, int $index): ?Service
