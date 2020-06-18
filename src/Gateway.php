@@ -92,7 +92,6 @@ final class Gateway extends Container implements HttpKernelInterface
             $this['gateway.cache']->set(static::CONFIG_KEY, $config);
         } else {
             $config = $this['gateway.cache']->get(static::CONFIG_KEY);
-            ;
         }
 
         $config = unserialize($config);
