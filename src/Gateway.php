@@ -8,6 +8,7 @@ use KejawenLab\SemartApiGateway\Handler\HandlerFactory;
 use KejawenLab\SemartApiGateway\Handler\HandlerInterface;
 use KejawenLab\SemartApiGateway\Handler\RandomHandler;
 use KejawenLab\SemartApiGateway\Handler\RoundRobinHandler;
+use KejawenLab\SemartApiGateway\Handler\StickyHandler;
 use KejawenLab\SemartApiGateway\Request\AuthenticationHandler;
 use KejawenLab\SemartApiGateway\Request\RequestHandler;
 use KejawenLab\SemartApiGateway\Route\Route;
@@ -31,11 +32,13 @@ use Webmozart\Assert\Assert;
  */
 final class Gateway extends Container implements HttpKernelInterface
 {
+    public const VERSION = '1.0@dev';
+
     private const CACHE_KEY = '56235eacd73c9387b42f56959e01b6174ac35d94';
 
     private const CONFIG_KEY = '2e048eac73bd0908d9c2afb73aa7cc688960f8e6';
 
-    public function __construct(\Redis $redis, bool $cacheable = false)
+    public function __construct(\Redis $redis, string $environtment = 'dev')
     {
         parent::__construct();
 
@@ -43,8 +46,8 @@ final class Gateway extends Container implements HttpKernelInterface
             return $redis;
         };
 
-        $this['gateway.cacheable'] = function () use ($cacheable) {
-            return $cacheable;
+        $this['gateway.cacheable'] = function () use ($environtment) {
+            return 'prod' === strtolower($environtment);
         };
     }
 
@@ -101,10 +104,15 @@ final class Gateway extends Container implements HttpKernelInterface
         Assert::keyExists($config['gateway'], 'auth');
         Assert::keyExists($config['gateway'], 'services');
         Assert::keyExists($config['gateway'], 'routes');
+        Assert::keyExists($config['gateway'], 'trusted_ips');
 
         $this->buildAuthenticationHandler($config);
         $this->buildServices($config);
         $this->buildRoutes($config);
+
+        $this['gateway.trusted_ips'] = function ($c) use ($config) {
+            return $config['gateway']['trusted_ips'];
+        };
 
         $this['gateway.handler.random'] = function ($c) {
             return new RandomHandler($c['gateway.service_factory']);
@@ -114,8 +122,12 @@ final class Gateway extends Container implements HttpKernelInterface
             return new RoundRobinHandler($c['gateway.service_factory']);
         };
 
+        $this['gateway.handler.sticky'] = function ($c) {
+            return new StickyHandler($c['gateway.service_factory']);
+        };
+
         $this['gateway.handler_factory'] = function ($c) {
-            return new HandlerFactory([$c['gateway.handler.roundrobin'], $c['gateway.handler.random']]);
+            return new HandlerFactory([$c['gateway.handler.roundrobin'], $c['gateway.handler.random'], $this['gateway.handler.sticky'], ]);
         };
 
         $this['gateway.service_resolver'] = function ($c) {
@@ -123,7 +135,14 @@ final class Gateway extends Container implements HttpKernelInterface
         };
 
         $this['gateway.request_handler'] = function ($c) {
-            return new RequestHandler($c['gateway.authentication_handler'], $c['gateway.service_resolver'], $c['gateway.service_factory'], $c['gateway.route_factory'], $c['gateway.cache']);
+            return new RequestHandler(
+                $c['gateway.authentication_handler'],
+                $c['gateway.service_resolver'],
+                $c['gateway.service_factory'],
+                $c['gateway.route_factory'],
+                $c['gateway.cache'],
+                $c['gateway.trusted_ips']
+            );
         };
     }
 

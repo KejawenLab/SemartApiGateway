@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway\Request;
 
+use KejawenLab\SemartApiGateway\Gateway;
 use KejawenLab\SemartApiGateway\Route\RouteFactory;
 use KejawenLab\SemartApiGateway\Service\NoServiceAvailableException;
 use KejawenLab\SemartApiGateway\Service\Resolver;
@@ -28,13 +29,22 @@ final class RequestHandler
 
     private $redis;
 
-    public function __construct(AuthenticationHandler $authenticationHandler, Resolver $serviceResolver, ServiceFactory $serviceFactory, RouteFactory $routeFactory, \Redis $redis)
-    {
+    private $trustedIps;
+
+    public function __construct(
+        AuthenticationHandler $authenticationHandler,
+        Resolver $serviceResolver,
+        ServiceFactory $serviceFactory,
+        RouteFactory $routeFactory,
+        \Redis $redis,
+        array $trustedIps
+    ) {
         $this->authenticationHandler = $authenticationHandler;
         $this->serviceResolver = $serviceResolver;
         $this->serviceFactory = $serviceFactory;
         $this->routeFactory = $routeFactory;
         $this->redis = $redis;
+        $this->trustedIps = $trustedIps;
     }
 
     public function handle(string $routeName, Request $request): Response
@@ -49,7 +59,9 @@ final class RequestHandler
             if ($auth = $request->headers->get('Authorization')) {
                 $options['headers']['Authorization'] = $auth;
             } else {
-                $options['headers']['Authorization'] = sprintf('Bearer %s', $this->authenticationHandler->getAccessToken());
+                if (in_array($request->getClientIp(), $this->trustedIps)) {
+                    $options['headers']['Authorization'] = sprintf('Bearer %s', $this->authenticationHandler->getAccessToken());
+                }
             }
         }
 
@@ -69,7 +81,7 @@ final class RequestHandler
                     'content-type' => $headers['content-type'],
                 ]);
 
-                if (Request::METHOD_GET && $request->getMethod() && Response::HTTP_OK === $response->getStatusCode()) {
+                if ($request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
                     $this->redis->set($key, $data);
                     $this->redis->expire($key, $route->getCacheLifetime());
                 }
@@ -77,13 +89,13 @@ final class RequestHandler
 
             $data = unserialize($data);
 
-            return new Response($data['content'], $statusCode, ['content-type' => $data['content-type']]);
+            return new Response($data['content'], $statusCode, ['content-type' => $data['content-type'], 'Semart-Gateway' => Gateway::VERSION]);
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);
 
             return $this->handle($routeName, $request);
         } catch (NoServiceAvailableException $e) {
-            return new Response($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
+            return new Response($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR, ['Semart-Gateway' => Gateway::VERSION]);
         }
     }
 }
