@@ -119,7 +119,15 @@ class Service
 
     public function isEnabled(): bool
     {
-        return $this->enabled || $this->isDown() || $this->isLimit();
+        if ($limit = $this->isLimit()) {
+            $this->resetHit();
+        }
+
+        if (!$limit) {
+            return $this->enabled || $this->isDown();
+        }
+
+        return $limit;
     }
 
     public function isDown(): bool

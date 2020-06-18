@@ -27,10 +27,6 @@ final class Resolver
         $service = $this->handlerFactory->handle($this->routeFactory->get($routeName));
         if ($service) {
             $service->hit();
-
-            if ($service->isLimit()) {
-                $service->resetHit();
-            }
         }
 
         return $service;
