@@ -26,7 +26,7 @@ Semart Api Gateway is Fast, Simple Yet Powerful API Gateway base on Symfony Comp
 
 ## Note
 
-This Api Gateway only can handle JSON data. If you want to more data types support, please use [Kong](https://github.com/Kong/kong)
+This Api Gateway can only handle JSON data. If you want to more data types support, please use [Kong](https://github.com/Kong/kong)
 
 ## Install
 
