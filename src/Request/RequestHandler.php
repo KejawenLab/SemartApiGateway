@@ -51,12 +51,11 @@ final class RequestHandler
 
     public function handle(string $routeName, Request $request): Response
     {
-        if (!$service = $this->serviceResolver->resolve($routeName)) {
-            throw new NoServiceAvailableException();
-        }
-
         $options = OptionBuilder::build($request);
         $route = $this->routeFactory->get($routeName);
+        $key = sha1(sprintf('%s_%s', $route->getPath(), serialize($options)));
+        $statusCode = 200;
+
         if (!$route->isPublic()) {
             if ($auth = $request->headers->get('Authorization')) {
                 $options['headers']['Authorization'] = $auth;
@@ -67,28 +66,32 @@ final class RequestHandler
             }
         }
 
+        if ($data = $this->redis->get($key)) {
+            return new JsonResponse(unserialize($data), $statusCode, [
+                'Semart-Gateway-Version' => Gateway::VERSION,
+                'Semart-Gateway-Service-Id' => 'cache',
+            ]);
+        }
+
+        if (!$service = $this->serviceResolver->resolve($routeName)) {
+            throw new NoServiceAvailableException();
+        }
+
         try {
-            $key = sha1(sprintf('%s_%s', $route->getPath(), serialize($options)));
-            $statusCode = 200;
-            if (!$data = $this->redis->get($key)) {
-                $client = HttpClient::create();
-                $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
-                $statusCode = $response->getStatusCode();
+            $client = HttpClient::create();
+            $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
+            $statusCode = $response->getStatusCode();
 
-                $data = serialize(json_decode($response->getContent(), true));
-
-                if (app()['gateway.verify_path'] === $request->getPathInfo()) {
-                    $this->redis->set($key, $data);
-                    $this->redis->expire($key, app()['gateway.auth_cache_lifetime']);
-                    app()->pool($key);
-                } elseif ($request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
-                    $this->redis->set($key, $data);
-                    $this->redis->expire($key, $route->getCacheLifetime());
-                    app()->pool($key);
-                }
+            $data = json_decode($response->getContent(), true);
+            if (app()['gateway.verify_path'] === $request->getPathInfo()) {
+                $this->redis->set($key, $data);
+                $this->redis->expire($key, app()['gateway.auth_cache_lifetime']);
+                app()->pool($key);
+            } elseif ($request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
+                $this->redis->set($key, $data);
+                $this->redis->expire($key, $route->getCacheLifetime());
+                app()->pool($key);
             }
-
-            $data = unserialize($data);
 
             return new JsonResponse($data, $statusCode, [
                 'Semart-Gateway-Version' => Gateway::VERSION,
