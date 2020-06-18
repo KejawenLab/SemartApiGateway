@@ -25,6 +25,7 @@ Semart Api Gateway is Fast, Simple Yet Powerful API Gateway base on Symfony Comp
 ```bash
 git clone https://github.com/KejawenLab/SemartApiGateway.git gateway
 cd gateway
+cp .env.example .env
 cp gateway.yaml.example gateway.yaml
 cp routes.yaml.example routes.yaml
 composer update
