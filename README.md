@@ -37,7 +37,7 @@ composer update
 
 ## Configuration
 
-Please Check [Main Configuration Example](gateway.yaml.example) and [Routes Configuration Example](routes.yaml.example)
+Please Check [Main Configuration Example](gateway.yaml.example), [Service Configuration Example](services.yaml.example) and [Routes Configuration Example](routes.yaml.example)
 
 ## Statistic
 
