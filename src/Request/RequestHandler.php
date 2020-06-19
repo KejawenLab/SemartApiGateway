@@ -81,8 +81,11 @@ final class RequestHandler
             $client = HttpClient::create();
             $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
             $statusCode = $response->getStatusCode();
+            $headers = array_map(function ($value) {
+                return $value[0];
+            }, $response->getHeaders());
 
-            $data = json_decode($response->getContent(), true);
+            $data = $response->getContent();
             if (app()['gateway.verify_path'] === $request->getPathInfo()) {
                 $this->redis->set($key, $data);
                 $this->redis->expire($key, app()['gateway.auth_cache_lifetime']);
@@ -93,7 +96,8 @@ final class RequestHandler
                 app()->pool($key);
             }
 
-            return new JsonResponse($data, $statusCode, [
+            return new Response($data, $statusCode, [
+                'Content-Type' => $headers['content-type'],
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => $service->getName(),
             ]);

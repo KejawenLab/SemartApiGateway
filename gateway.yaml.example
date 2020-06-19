@@ -2,6 +2,8 @@ gateway:
     prefix: /api
     host: https://arsiteknologi.com:8080
     trusted_ips: ['127.0.0.1', '::1']
+    exclude_paths:
+        - /public/settings
     auth:
         host: https://arsiteknologi.com:8080
         login:

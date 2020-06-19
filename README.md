@@ -24,10 +24,6 @@ Semart Api Gateway is Fast, Simple Yet Powerful API Gateway base on Symfony Comp
 > Screenshot use [SemartApiSkeleton](https://github.com/KejawenLab/SemartApiSkeleton) demo on my Digital Ocean VPS with 1 GB of RAM
 >
 
-## Note
-
-This Api Gateway can only handle JSON data. If you want to more data types support, please use [Kong](https://github.com/Kong/kong)
-
 ## Install
 
 ```bash
@@ -57,9 +53,9 @@ Please Check [Main Configuration Example](gateway.yaml.example) and [Routes Conf
     - [X] Authetication For Internal Call
 - [X] Api Versioning Per Service
 - [X] Public and Private Api
-- [ ] Implement Rate Limiter
+- [X] Implement Rate Limiter
     - [X] Limit Resource
-    - [ ] Limit Request
+    - [X] Limit Request
 - [ ] Implement Health Check
 - [ ] Create Dashboard
 

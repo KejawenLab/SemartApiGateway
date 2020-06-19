@@ -12,6 +12,7 @@ use KejawenLab\SemartApiGateway\Handler\StickyHandler;
 use KejawenLab\SemartApiGateway\Handler\WeightHandler;
 use KejawenLab\SemartApiGateway\Request\AuthenticationHandler;
 use KejawenLab\SemartApiGateway\Request\RequestHandler;
+use KejawenLab\SemartApiGateway\Request\RequestLimiter;
 use KejawenLab\SemartApiGateway\Route\Route;
 use KejawenLab\SemartApiGateway\Route\RouteFactory;
 use KejawenLab\SemartApiGateway\Service\Resolver;
@@ -21,11 +22,11 @@ use Pimple\Container;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route as SymfonyRoute;
 use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Yaml\Yaml;
-use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Webmozart\Assert\Assert;
 
 /**
@@ -56,8 +57,12 @@ final class Gateway extends Container implements HttpKernelInterface
     {
         $this->build();
 
-        $routeCollection = new RouteCollection();
+        $requestLimiter = new RequestLimiter($this['gateway.cache']);
+        if ($this['gateway.cacheable'] && !$requestLimiter->allow($request, $this['gateway.exclude_paths'])) {
+            return new Response(null, Response::HTTP_TOO_MANY_REQUESTS);
+        }
 
+        $routeCollection = new RouteCollection();
         /** @var RouteFactory $routeFactory */
         $routeFactory = $this['gateway.route_factory'];
         foreach ($routeFactory->routes() as $route) {
@@ -106,6 +111,8 @@ final class Gateway extends Container implements HttpKernelInterface
         Assert::keyExists($config['gateway'], 'services');
         Assert::keyExists($config['gateway'], 'routes');
         Assert::keyExists($config['gateway'], 'trusted_ips');
+        Assert::keyExists($config['gateway'], 'exclude_paths');
+        Assert::isArray($config['gateway']['exclude_paths']);
 
         $this->buildAuthenticationHandler($config);
         $this->buildServices($config);
@@ -113,6 +120,15 @@ final class Gateway extends Container implements HttpKernelInterface
 
         $this['gateway.trusted_ips'] = function ($c) use ($config) {
             return $config['gateway']['trusted_ips'];
+        };
+
+        $this['gateway.exclude_paths'] = function ($c) use ($config) {
+            $excludes = $config['gateway']['exclude_paths'];
+            foreach ($excludes as $key => $value) {
+                $excludes[$key] = sprintf('%s%s', $c['gateway.prefix'], $value);
+            }
+
+            return $excludes;
         };
 
         $this['gateway.handler.random'] = function ($c) {
