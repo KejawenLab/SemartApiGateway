@@ -58,7 +58,7 @@ Please Check [Main Configuration Example](gateway.yaml.example) and [Routes Conf
     - [X] Limit Resource
     - [X] Limit Request
 - [ ] Implement Health Check
-- [ ] Create Dashboard
+- [X] Statistic Api
 
 ## License
 

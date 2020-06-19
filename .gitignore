@@ -2,4 +2,5 @@
 vendor
 gateway.yaml
 routes.yaml
+services.yaml
 .env

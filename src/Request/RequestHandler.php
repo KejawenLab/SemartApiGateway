@@ -67,7 +67,10 @@ final class RequestHandler
         }
 
         if ($data = $this->redis->get($key)) {
-            return new JsonResponse(unserialize($data), $statusCode, [
+            $data = unserialize($data);
+
+            return new JsonResponse($data['content'], $statusCode, [
+                'Content-Type' => $data['content-type'],
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => 'cache',
             ]);
@@ -85,7 +88,11 @@ final class RequestHandler
                 return $value[0];
             }, $response->getHeaders());
 
-            $data = $response->getContent();
+            $data = serialize([
+                'content' => $response->getContent(),
+                'content-type' => $headers['content-type'],
+            ]);
+
             if (app()['gateway.verify_path'] === $request->getPathInfo()) {
                 $this->redis->set($key, $data);
                 $this->redis->expire($key, app()['gateway.auth_cache_lifetime']);
@@ -96,8 +103,10 @@ final class RequestHandler
                 app()->pool($key);
             }
 
-            return new Response($data, $statusCode, [
-                'Content-Type' => $headers['content-type'],
+            $data = unserialize($data);
+
+            $symfonyResponse = new Response($data['content'], $statusCode, [
+                'Content-Type' => $data['content-type'],
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => $service->getName(),
             ]);
@@ -106,15 +115,26 @@ final class RequestHandler
 
             return $this->handle($routeName, $request);
         } catch (NoServiceAvailableException $e) {
-            return new JsonResponse(['error' => $e->getCode(), 'message' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR, [
+            $symfonyResponse = new JsonResponse(['error' => $e->getCode(), 'message' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR, [
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => $service->getName(),
             ]);
         } catch (ClientException $e) {
-            return new JsonResponse(['error' => $e->getCode(), 'message' => sprintf('Cant call URL "%s"', $service->getUrl($route->getPath()))], Response::HTTP_INTERNAL_SERVER_ERROR, [
+            $symfonyResponse = new JsonResponse(['error' => $e->getCode(), 'message' => sprintf('Cant call URL "%s"', $service->getUrl($route->getPath()))], Response::HTTP_INTERNAL_SERVER_ERROR, [
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => $service->getName(),
             ]);
+        } finally {
+            if (!isset($symfonyResponse)) {
+                $symfonyResponse = new JsonResponse(['error' => 500, 'message' => 'Cant determine error'], Response::HTTP_INTERNAL_SERVER_ERROR, [
+                    'Semart-Gateway-Version' => Gateway::VERSION,
+                    'Semart-Gateway-Service-Id' => $service->getName(),
+                ]);
+            }
+
+            add_to_stat($service, $symfonyResponse);
         }
+
+        return $symfonyResponse;
     }
 }

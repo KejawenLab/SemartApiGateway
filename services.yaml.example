@@ -1,0 +1,16 @@
+gateway:
+    services:
+        service1:
+            host: https://arsiteknologi.com:8080
+            weight: 7
+        service2:
+            host: https://arsiteknologi.com:8080
+            limit: 1000
+            weight: 5
+        service3:
+            host: https://arsiteknologi.com:8080
+        service4:
+            host: https://arsiteknologi.com:8080
+            health_check_path: /status
+            limit: 1000
+            weight: 3

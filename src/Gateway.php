@@ -18,7 +18,9 @@ use KejawenLab\SemartApiGateway\Route\RouteFactory;
 use KejawenLab\SemartApiGateway\Service\Resolver;
 use KejawenLab\SemartApiGateway\Service\Service;
 use KejawenLab\SemartApiGateway\Service\ServiceFactory;
+use KejawenLab\SemartApiGateway\Service\Statistic;
 use Pimple\Container;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
@@ -53,6 +55,28 @@ final class Gateway extends Container implements HttpKernelInterface
         };
     }
 
+    public function pool(string $key): void
+    {
+        if (!$keys = $this['gateway.cache']->get(static::CACHE_KEY)) {
+            $keys = serialize([]);
+        }
+
+        $keys = unserialize($keys);
+        if (!in_array($key, $keys)) {
+            $keys = array_merge($keys, [$key]);
+            $this['gateway.cache']->set(static::CACHE_KEY, serialize($keys));
+        }
+    }
+
+    public function clean(): void
+    {
+        if (!$keys = $this['gateway.cache']->get(static::CACHE_KEY)) {
+            return;
+        }
+
+        $this['gateway.cache']->del(array_merge(unserialize($keys), [static::CACHE_KEY]));
+    }
+
     public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true): Response
     {
         $this->build();
@@ -65,6 +89,8 @@ final class Gateway extends Container implements HttpKernelInterface
         }
 
         $routeCollection = new RouteCollection();
+        $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
+
         /** @var RouteFactory $routeFactory */
         $routeFactory = $this['gateway.route_factory'];
         foreach ($routeFactory->routes() as $route) {
@@ -73,6 +99,10 @@ final class Gateway extends Container implements HttpKernelInterface
 
         $matcher = new UrlMatcher($routeCollection, new RequestContext());
         $match = $matcher->matchRequest($request);
+
+        if ($match['_route'] === Statistic::ROUTE_NAME) {
+            return new JsonResponse($this['gateway.statistic']->statistic());
+        }
 
         /** @var RequestHandler $requestHandler */
         $requestHandler = $this['gateway.request_handler'];
@@ -85,22 +115,17 @@ final class Gateway extends Container implements HttpKernelInterface
         if (!$this['gateway.cacheable']) {
             $this->clean();
 
-            $gateway = Yaml::parse(file_get_contents(sprintf('%s/gateway.yaml', GATEWAY_ROOT)));
-            $routes = Yaml::parse(file_get_contents(sprintf('%s/routes.yaml', GATEWAY_ROOT)));
-
-            Assert::keyExists($gateway, 'gateway');
-            Assert::keyExists($routes, 'gateway');
-            Assert::keyExists($routes['gateway'], 'routes');
-
-            $gateway['gateway']['routes'] = $routes['gateway']['routes'];
-
-            $config = serialize($gateway);
-
+            $config = serialize($this->parseConfig());
             $this['gateway.cache']->set(static::CONFIG_KEY, $config);
         } else {
             $config = $this['gateway.cache']->get(static::CONFIG_KEY);
+            if (!$config) {
+                $config = serialize($this->parseConfig());
+                $this['gateway.cache']->set(static::CONFIG_KEY, $config);
+            }
         }
 
+        app()->pool(static::CONFIG_KEY);
         $config = unserialize($config);
 
         $this['gateway.prefix'] = '';
@@ -160,6 +185,10 @@ final class Gateway extends Container implements HttpKernelInterface
 
         $this['gateway.service_resolver'] = function ($c) {
             return new Resolver($c['gateway.route_factory'], $c['gateway.handler_factory']);
+        };
+
+        $this['gateway.statistic'] = function ($c) {
+            return new Statistic($c['gateway.service_factory'], $c['gateway.cache']);
         };
 
         $this['gateway.request_handler'] = function ($c) {
@@ -312,25 +341,19 @@ final class Gateway extends Container implements HttpKernelInterface
         };
     }
 
-    public function pool(string $key): void
+    private function parseConfig(): array
     {
-        if (!$keys = $this['gateway.cache']->get(static::CACHE_KEY)) {
-            $keys = serialize([]);
-        }
+        $gateway = Yaml::parse(file_get_contents(sprintf('%s/gateway.yaml', GATEWAY_ROOT)));
+        $routes = Yaml::parse(file_get_contents(sprintf('%s/routes.yaml', GATEWAY_ROOT)));
+        $services = Yaml::parse(file_get_contents(sprintf('%s/services.yaml', GATEWAY_ROOT)));
 
-        $keys = unserialize($keys);
-        if (!in_array($key, $keys)) {
-            $keys = array_merge($keys, [$key]);
-            $this['gateway.cache']->set(static::CACHE_KEY, serialize($keys));
-        }
-    }
+        Assert::keyExists($gateway, 'gateway');
+        Assert::keyExists($routes, 'gateway');
+        Assert::keyExists($services['gateway'], 'services');
 
-    public function clean(): void
-    {
-        if (!$keys = $this['gateway.cache']->get(static::CACHE_KEY)) {
-            return;
-        }
+        $gateway['gateway']['routes'] = $routes['gateway']['routes'];
+        $gateway['gateway']['services'] = $services['gateway']['services'];
 
-        $this['gateway.cache']->del(array_merge(unserialize($keys), [static::CACHE_KEY]));
+        return $gateway;
     }
 }
