@@ -132,7 +132,12 @@ final class RequestHandler
                 ]);
             }
 
-            add_to_stat($service, $symfonyResponse);
+            add_to_stat($service, [
+                'path' => $request->getPathInfo(),
+                'ip' => $request->getClientIp(),
+                'method' => $request->getMethod(),
+                'code' => $symfonyResponse->getStatusCode(),
+            ]);
         }
 
         return $symfonyResponse;

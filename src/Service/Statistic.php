@@ -76,14 +76,14 @@ final class Statistic
         return $result;
     }
 
-    public function stat(Service $service, Response $response): void
+    public function stat(Service $service, array $data): void
     {
         $statistic = $this->getStat();
         if (!array_key_exists($service->getName(), $statistic)) {
             $statistic[$service->getName()] = [];
         }
 
-        $statistic[$service->getName()][] = $this->formatting($response);
+        $statistic[$service->getName()][] = $this->formatting($data);
 
         $this->redis->set(static::CACHE_KEY, serialize($statistic));
     }
@@ -100,12 +100,14 @@ final class Statistic
         return unserialize($statistic);
     }
 
-    private function formatting(Response $response): array
+    private function formatting(array $data): array
     {
         return [
-            'content' => $response->getContent(),
+            'path' => $data['path'],
+            'ip' => $data['ip'],
+            'method' => $data['method'],
             'hit' => date('Y-m-d H:i:s'),
-            'code' => $response->getStatusCode(),
+            'code' => $data['code'],
         ];
     }
 }

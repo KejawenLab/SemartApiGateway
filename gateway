@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+define('GATEWAY_ROOT', __DIR__);
+
+require GATEWAY_ROOT.'/vendor/autoload.php';
+
+use KejawenLab\SemartApiGateway\Gateway;
+use KejawenLab\SemartApiGateway\Command\Application;
+use Symfony\Component\Dotenv\Dotenv;
+
+set_time_limit(0);
+
+if (!isset($_SERVER['SEMART_ENV']) || !isset($_SERVER['SEMART_REDIST_HOST'])) {
+    $dotEnv = new Dotenv();
+    $dotEnv->load(sprintf('%s/.env', GATEWAY_ROOT));
+}
+
+$redis = new Redis();
+$redis->connect($_SERVER['SEMART_REDIST_HOST']);
+
+$app = new Gateway($redis, $_SERVER['SEMART_ENV']);
+
+$GLOBALS['app'] = $app;
+
+$application = new Application($app);
+$application->run();

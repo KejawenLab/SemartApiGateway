@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway;
 
+use KejawenLab\SemartApiGateway\Command\HealthCheckCommand;
 use KejawenLab\SemartApiGateway\Handler\HandlerFactory;
 use KejawenLab\SemartApiGateway\Handler\HandlerInterface;
 use KejawenLab\SemartApiGateway\Handler\RandomHandler;
@@ -36,6 +37,8 @@ use Webmozart\Assert\Assert;
  */
 final class Gateway extends Container implements HttpKernelInterface
 {
+    public const NAME = 'Semart Api Gateway';
+
     public const VERSION = '1.0@dev';
 
     private const CACHE_KEY = '56235eacd73c9387b42f56959e01b6174ac35d94';
@@ -110,7 +113,7 @@ final class Gateway extends Container implements HttpKernelInterface
         return $requestHandler->handle($match['_route'], $request);
     }
 
-    private function build(): void
+    public function build(): void
     {
         if (!$this['gateway.cacheable']) {
             $this->clean();
@@ -144,6 +147,7 @@ final class Gateway extends Container implements HttpKernelInterface
         $this->buildAuthenticationHandler($config);
         $this->buildServices($config);
         $this->buildRoutes($config);
+        $this->buildCommands();
 
         $this['gateway.trusted_ips'] = function ($c) use ($config) {
             return $config['gateway']['trusted_ips'];
@@ -338,6 +342,15 @@ final class Gateway extends Container implements HttpKernelInterface
                 $config['gateway']['auth']['token'],
                 $config['gateway']['auth']['credential']
             );
+        };
+    }
+
+    private function buildCommands(): void
+    {
+        $this['gateway.commands'] = function ($c) {
+            return [
+                new HealthCheckCommand($c['gateway.service_factory']),
+            ];
         };
     }
 

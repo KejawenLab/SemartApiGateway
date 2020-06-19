@@ -63,6 +63,7 @@ You can see statistic by call path `/gateway/statistic` and the response be like
 - [X] Implement Rate Limiter
     - [X] Limit Resource
     - [X] Limit Request
+    - [ ] Request Timeout
 - [ ] Implement Health Check
 - [X] Statistic Api
 
