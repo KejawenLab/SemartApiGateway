@@ -39,6 +39,12 @@ composer update
 
 Please Check [Main Configuration Example](gateway.yaml.example) and [Routes Configuration Example](routes.yaml.example)
 
+## Statistic
+
+You can see statistic by call path `/gateway/statistic` and the response be like
+
+![Reponse](statistic.png)
+
 ## TODO
 
 - [X] Trusted IPs
