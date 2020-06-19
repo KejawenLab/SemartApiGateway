@@ -41,6 +41,7 @@ Please Check [Main Configuration Example](gateway.yaml.example) and [Routes Conf
 
 ## TODO
 
+- [X] Trusted IPs
 - [X] Implement Load Balancer
     - [X] Random Method 
     - [X] Round Robin Method

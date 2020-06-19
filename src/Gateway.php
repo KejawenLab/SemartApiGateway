@@ -58,7 +58,9 @@ final class Gateway extends Container implements HttpKernelInterface
         $this->build();
 
         $requestLimiter = new RequestLimiter($this['gateway.cache']);
-        if ($this['gateway.cacheable'] && !$requestLimiter->allow($request, $this['gateway.exclude_paths'])) {
+        $allow = $requestLimiter->allow($request, $this['gateway.exclude_paths']);
+        $trusted = in_array($request->getClientIp(), $this['gateway.trusted_ips']);
+        if ($this['gateway.cacheable'] && !$trusted && !$allow) {
             return new Response(null, Response::HTTP_TOO_MANY_REQUESTS);
         }
 
