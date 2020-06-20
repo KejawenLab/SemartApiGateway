@@ -72,6 +72,7 @@ You can see statistic by call path `/gateway/status` and the response be like
     - [ ] Request Timeout
 - [X] Implement Health Check
 - [X] Statistic Api
+- [X] Services Status Api
 
 ## License
 
