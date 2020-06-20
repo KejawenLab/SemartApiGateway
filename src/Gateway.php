@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway;
 
+use KejawenLab\SemartApiGateway\Command\ClearCacheCommand;
 use KejawenLab\SemartApiGateway\Command\HealthCheckCommand;
 use KejawenLab\SemartApiGateway\Handler\HandlerFactory;
 use KejawenLab\SemartApiGateway\Handler\HandlerInterface;
@@ -371,6 +372,7 @@ final class Gateway extends Container implements HttpKernelInterface
         $this['gateway.commands'] = function ($c) {
             return [
                 new HealthCheckCommand($c['gateway.service_factory'], $c['gateway.route_factory']),
+                new ClearCacheCommand(),
             ];
         };
     }

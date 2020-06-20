@@ -48,11 +48,17 @@ final class HealthCheckCommand extends Command
                         $response = $client->request('GET', $service->getUrl($service->getHealthCheckPath()));
                         if (Response::HTTP_OK === $response->getStatusCode()) {
                             $this->serviceFactory->up($service);
+
+                            $output->writeln(sprintf('<info>Service "%s" is up</info>', $service->getName()));
                         } else {
                             $this->serviceFactory->down($service);
+
+                            $output->writeln(sprintf('<info>Service "%s" is down</info>', $service->getName()));
                         }
                     } catch (\Exception $e) {
                         $this->serviceFactory->down($service);
+
+                        $output->writeln(sprintf('<info>Service "%s" is down</info>', $service->getName()));
                     }
                 }
             }
