@@ -25,7 +25,7 @@ final class ServiceStatus
         $result = [];
         $services = $this->serviceFactory->getServices();
         foreach ($services as $service) {
-            $result[] = [
+            $result[$service->getName()] = [
                 'enable' => $service->isEnabled(),
                 'down' => $service->isDown(),
                 'limit' => $service->isLimit(),
