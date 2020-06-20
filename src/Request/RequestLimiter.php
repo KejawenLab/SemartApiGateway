@@ -15,7 +15,7 @@ final class RequestLimiter
 
     private const REQUEST_LIMIT_PER_SECOND = 5;
 
-    private const REQUEST_LIMIT_LIFETIME = 1800;
+    private const REQUEST_LIMIT_LIFETIME = 1;
 
     private $redis;
 
