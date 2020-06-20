@@ -330,7 +330,7 @@ final class Gateway extends Container implements HttpKernelInterface
                     $timeout = (int) $route['timeout'];
                 }
 
-                $factory->addRoute(new Route($name, $route['path'], $handlers, $methods, $balance, $priority, $public, $requirements, $cacheLifetime, $timeout));
+                $factory->addRoute(new Route($name, $route['path'], $handlers, $methods, $balance, $priority, $public, $requirements, 0, $cacheLifetime, $timeout));
             }
 
             return $factory;
