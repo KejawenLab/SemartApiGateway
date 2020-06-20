@@ -23,19 +23,3 @@ gateway:
             password:
                 field: password
                 value: admin
-    services:
-        service1:
-            host: https://arsiteknologi.com:8080
-            weight: 7
-        service2:
-            host: https://arsiteknologi.com:8080
-            limit: 1000
-            weight: 5
-        service3:
-            host: https://arsiteknologi.com:8080
-        service4:
-            host: https://arsiteknologi.com:8080
-            version: null
-            health_check_path: /status
-            limit: 1000
-            weight: 1
