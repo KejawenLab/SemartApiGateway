@@ -13,9 +13,9 @@ final class RequestLimiter
 {
     private const CACHE_KEY = 'bb72ffb1a3064d36cfe615ce5ec2bba2d762fe95';
 
-    private const REQUEST_LIMIT_PER_SECOND = 5;
+    private const REQUEST_LIMIT_PER_SECOND = 17;
 
-    private const REQUEST_LIMIT_LIFETIME = 1;
+    private const REQUEST_LIMIT_LIFETIME = 60;
 
     private $redis;
 
