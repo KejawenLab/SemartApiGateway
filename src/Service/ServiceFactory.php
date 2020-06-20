@@ -71,23 +71,14 @@ final class ServiceFactory
         $this->addService($service);
     }
 
+    public function update(Service $service): void
+    {
+        $this->addService($service);
+    }
+
     public function up(Service $service): void
     {
         $service->up();
-
-        $this->addService($service);
-    }
-
-    public function disabled(Service $service): void
-    {
-        $service->disabled();
-
-        $this->addService($service);
-    }
-
-    public function enabled(Service $service): void
-    {
-        $service->enabled();
 
         $this->addService($service);
     }

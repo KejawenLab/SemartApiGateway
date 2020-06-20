@@ -16,10 +16,13 @@ final class Resolver
 
     private $handlerFactory;
 
-    public function __construct(RouteFactory $routeFactory, HandlerFactory $handlerFactory)
+    private $serviceFactory;
+
+    public function __construct(RouteFactory $routeFactory, HandlerFactory $handlerFactory, ServiceFactory $serviceFactory)
     {
         $this->routeFactory = $routeFactory;
         $this->handlerFactory = $handlerFactory;
+        $this->serviceFactory = $serviceFactory;
     }
 
     public function resolve(string $routeName): ?Service
@@ -27,6 +30,7 @@ final class Resolver
         $service = $this->handlerFactory->handle($this->routeFactory->get($routeName));
         if ($service) {
             $service->hit();
+            $this->serviceFactory->update($service);
         }
 
         return $service;

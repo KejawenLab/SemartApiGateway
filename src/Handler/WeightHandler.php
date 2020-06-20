@@ -46,6 +46,10 @@ final class WeightHandler implements HandlerInterface
 
         $service = $route->getHandler($index);
         if ($service) {
+            if (!$service->isEnabled()) {
+                return $this->getService($route, ++$index);
+            }
+
             if (0 === $service->getHit() % $service->getWeight()) {
                 ++$index;
                 if (!array_key_exists($index, $route->getHandlers())) {
@@ -58,9 +62,8 @@ final class WeightHandler implements HandlerInterface
             }
 
             $route->setCurrentHandler($index);
-            if (!$service->isEnabled()) {
-                return $this->getService($route, ++$index);
-            }
+
+            return $route->getHandler($index);
         }
 
         return $service;

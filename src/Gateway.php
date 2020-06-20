@@ -19,6 +19,7 @@ use KejawenLab\SemartApiGateway\Route\RouteFactory;
 use KejawenLab\SemartApiGateway\Service\Resolver;
 use KejawenLab\SemartApiGateway\Service\Service;
 use KejawenLab\SemartApiGateway\Service\ServiceFactory;
+use KejawenLab\SemartApiGateway\Service\ServiceStatus;
 use KejawenLab\SemartApiGateway\Service\Statistic;
 use Pimple\Container;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -92,7 +93,6 @@ final class Gateway extends Container implements HttpKernelInterface
         }
 
         $routeCollection = new RouteCollection();
-        $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
 
         /** @var RouteFactory $routeFactory */
         $routeFactory = $this['gateway.route_factory'];
@@ -100,11 +100,18 @@ final class Gateway extends Container implements HttpKernelInterface
             $routeCollection->add($route->getName(), new SymfonyRoute(sprintf('%s%s', $this['gateway.prefix'], $route->getPath()), [], $route->getRequirements(), [], null, [], $route->getMethods()), $route->getPriority());
         }
 
+        $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
+        $routeCollection->add(ServiceStatus::ROUTE_NAME, new SymfonyRoute(ServiceStatus::ROUTE_PATH, [], [], [], null, [], ['GET']));
+
         $matcher = new UrlMatcher($routeCollection, new RequestContext());
         $match = $matcher->matchRequest($request);
 
         if ($match['_route'] === Statistic::ROUTE_NAME) {
             return new JsonResponse($this['gateway.statistic']->statistic());
+        }
+
+        if ($match['_route'] === ServiceStatus::ROUTE_NAME) {
+            return new JsonResponse($this['gateway.status']->status());
         }
 
         /** @var RequestHandler $requestHandler */
@@ -188,7 +195,7 @@ final class Gateway extends Container implements HttpKernelInterface
         };
 
         $this['gateway.service_resolver'] = function ($c) {
-            return new Resolver($c['gateway.route_factory'], $c['gateway.handler_factory']);
+            return new Resolver($c['gateway.route_factory'], $c['gateway.handler_factory'], $c['gateway.service_factory']);
         };
 
         $this['gateway.statistic'] = function ($c) {
@@ -253,6 +260,10 @@ final class Gateway extends Container implements HttpKernelInterface
             }
 
             return $factory;
+        };
+
+        $this['gateway.status'] = function ($c) {
+            return new ServiceStatus($c['gateway.service_factory']);
         };
     }
 
@@ -349,7 +360,7 @@ final class Gateway extends Container implements HttpKernelInterface
     {
         $this['gateway.commands'] = function ($c) {
             return [
-                new HealthCheckCommand($c['gateway.service_factory']),
+                new HealthCheckCommand($c['gateway.service_factory'], $c['gateway.route_factory']),
             ];
         };
     }

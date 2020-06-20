@@ -45,6 +45,12 @@ You can see statistic by call path `/gateway/statistic` and the response be like
 
 ![Reponse](statistic.png)
 
+## Services Status
+
+You can see statistic by call path `/gateway/status` and the response be like
+
+![Response](status.png)
+
 ## TODO
 
 - [X] Trusted IPs
@@ -64,7 +70,7 @@ You can see statistic by call path `/gateway/statistic` and the response be like
     - [X] Limit Resource
     - [X] Limit Request
     - [ ] Request Timeout
-- [ ] Implement Health Check
+- [X] Implement Health Check
 - [X] Statistic Api
 
 ## License

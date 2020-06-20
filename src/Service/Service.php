@@ -23,23 +23,28 @@ class Service
 
     private $weight;
 
-    private $enabled;
-
     private $down;
 
     private $hit;
 
-    public function __construct(string $name, string $host, ?string $healthCheckPath = null, ?string $version = null, int $limit = -1, int $weight = 1)
-    {
+    public function __construct(
+        string $name,
+        string $host,
+        ?string $healthCheckPath = null,
+        ?string $version = null,
+        int $limit = -1,
+        int $weight = 1,
+        bool $down = false,
+        int $hit = 0
+    ) {
         $this->name = $name;
         $this->host = $host;
         $this->healthCheckPath = $healthCheckPath;
         $this->version = $version;
         $this->limit = $limit;
         $this->weight = $weight;
-        $this->enabled = true;
-        $this->down = false;
-        $this->hit = 0;
+        $this->down = $down;
+        $this->hit = $hit;
     }
 
     public static function createFromArray(array $service): self
@@ -51,6 +56,8 @@ class Service
         $version = null;
         $limit = -1;
         $weight = 1;
+        $down = false;
+        $hit = 0;
 
         if (array_key_exists('version', $service)) {
             $version = $service['version'];
@@ -64,7 +71,15 @@ class Service
             $weight = $service['weight'];
         }
 
-        return new self($service['name'], $service['host'], $service['health_check_path'], $version, $limit, $weight);
+        if (array_key_exists('down', $service)) {
+            $down = $service['down'];
+        }
+
+        if (array_key_exists('hit', $service)) {
+            $hit = $service['hit'];
+        }
+
+        return new self($service['name'], $service['host'], $service['health_check_path'], $version, $limit, $weight, $down, $hit);
     }
 
     public function toArray(): array
@@ -124,7 +139,7 @@ class Service
         }
 
         if (!$limit) {
-            return $this->enabled || $this->isDown();
+            return !$this->isDown();
         }
 
         return $limit;
@@ -138,16 +153,6 @@ class Service
     public function isUp(): bool
     {
         return !$this->down;
-    }
-
-    public function disabled(): void
-    {
-        $this->enabled = false;
-    }
-
-    public function enabled(): void
-    {
-        $this->enabled = true;
     }
 
     public function down(): void
