@@ -2,7 +2,7 @@
 
 Semart Api Gateway is Fast, Simple Yet Powerful API Gateway base on Symfony Component that aim to simplify your day
 
-If you want to get more feature the we can provide, just use [Kong](https://github.com/kong/kong)
+If you want to get more feature the we don't provide, just use [Kong](https://github.com/kong/kong)
 
 ## Requirements
 
