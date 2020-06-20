@@ -81,6 +81,11 @@ final class Gateway extends Container implements HttpKernelInterface
         $this['gateway.cache']->del(array_merge(unserialize($keys), [static::CACHE_KEY]));
     }
 
+    public function stat(Service $service, array $data): void
+    {
+        $this['gateway.statistic']->stat($service, $data);
+    }
+
     public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true): Response
     {
         $this->build();
@@ -139,7 +144,7 @@ final class Gateway extends Container implements HttpKernelInterface
         $config = unserialize($config);
 
         $this['gateway.prefix'] = '';
-        if (array_key_exists('prefix', $config['gateway'])) {
+        if (array_key_exists('prefix', $config['gateway']) && $config['gateway']['prefix']) {
             $this['gateway.prefix'] = $config['gateway']['prefix'];
         }
 
@@ -320,7 +325,12 @@ final class Gateway extends Container implements HttpKernelInterface
                     $cacheLifetime = (int) $route['cache_lifetime'];
                 }
 
-                $factory->addRoute(new Route($name, $route['path'], $handlers, $methods, $balance, $priority, $public, $requirements, $cacheLifetime));
+                $timeout = 0;
+                if (array_key_exists('timeout', $route)) {
+                    $timeout = (int) $route['timeout'];
+                }
+
+                $factory->addRoute(new Route($name, $route['path'], $handlers, $methods, $balance, $priority, $public, $requirements, $cacheLifetime, $timeout));
             }
 
             return $factory;

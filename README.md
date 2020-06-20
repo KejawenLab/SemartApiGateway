@@ -51,6 +51,18 @@ You can see statistic by call path `/gateway/status` and the response be like
 
 ![Response](status.png)
 
+## Health Check
+
+Add to crontab
+
+```bash
+* * * * * php gateway health-check > /dev/null
+```
+
+## Documentation
+
+See [The Doc](doc.md)
+
 ## TODO
 
 - [X] Trusted IPs
@@ -69,7 +81,7 @@ You can see statistic by call path `/gateway/status` and the response be like
 - [X] Implement Rate Limiter
     - [X] Limit Resource
     - [X] Limit Request
-    - [ ] Request Timeout
+    - [X] Request Timeout
 - [X] Implement Health Check
 - [X] Statistic Api
 - [X] Services Status Api

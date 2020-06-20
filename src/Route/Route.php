@@ -31,6 +31,8 @@ class Route
 
     private $handlers;
 
+    private $timeout;
+
     private $currentHandler;
 
     private $sorted;
@@ -46,6 +48,7 @@ class Route
         array $requirements = [],
         int $currentHandler = 0,
         int $cacheLifetime = 0,
+        int $timeout = 0,
         bool $sorted = false
     ) {
         $this->name = $name;
@@ -57,6 +60,7 @@ class Route
         $this->requirements = $requirements;
         $this->currentHandler = $currentHandler;
         $this->cacheLifetime = $cacheLifetime;
+        $this->timeout = $timeout;
         $this->sorted = $sorted;
 
         foreach ($handlers as $handler) {
@@ -78,6 +82,7 @@ class Route
         $requirements = [];
         $currentHandler = 0;
         $cacheLifetime = 0;
+        $timeout = 0;
         $sorted = false;
 
         if (array_key_exists('methods', $route) && is_array($route['methods'])) {
@@ -116,11 +121,28 @@ class Route
             $cacheLifetime = $route['cache_lifetime'];
         }
 
+        if (array_key_exists('timeout', $route) && is_int($route['timeout'])) {
+            $timeout = $route['timeout'];
+        }
+
         if (array_key_exists('sorted', $route) && is_bool($route['sorted'])) {
             $sorted = $route['sorted'];
         }
 
-        return new self($route['name'], $route['path'], $route['handlers'], $methods, $balanceMethod, $priority, $public, $requirements, $currentHandler, $cacheLifetime, $sorted);
+        return new self(
+            $route['name'],
+            $route['path'],
+            $route['handlers'],
+            $methods,
+            $balanceMethod,
+            $priority,
+            $public,
+            $requirements,
+            $currentHandler,
+            $cacheLifetime,
+            $timeout,
+            $sorted
+        );
     }
 
     public function toArray(): array
@@ -168,6 +190,11 @@ class Route
     public function getCacheLifetime(): int
     {
         return $this->cacheLifetime;
+    }
+
+    public function getTimeout(): int
+    {
+        return $this->timeout;
     }
 
     public function getBalanceMethod(): string

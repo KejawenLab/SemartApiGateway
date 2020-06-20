@@ -12,5 +12,6 @@ gateway:
         service4:
             host: https://arsiteknologi.com:8080
             health_check_path: /status
+            version: v1
             limit: 1000
             weight: 3

@@ -7,6 +7,7 @@ gateway:
             public: false
             cache_lifetime: 5
             balance: roundrobin # roundrobin | random | sticky (master/slave) NB: Please noted, some balance method may not work during development
+            timeout: 0
             handlers:
                 - service1
                 - service2

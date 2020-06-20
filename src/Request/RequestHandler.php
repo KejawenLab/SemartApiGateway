@@ -82,6 +82,10 @@ final class RequestHandler
 
         try {
             $client = HttpClient::create();
+            if ($route->getTimeout()) {
+                set_time_limit($route->getTimeout());
+            }
+
             $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
             $statusCode = $response->getStatusCode();
             $headers = array_map(function ($value) {
@@ -132,7 +136,7 @@ final class RequestHandler
                 ]);
             }
 
-            add_to_stat($service, [
+            app()->stat($service, [
                 'path' => $request->getPathInfo(),
                 'ip' => $request->getClientIp(),
                 'method' => $request->getMethod(),
