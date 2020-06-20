@@ -69,7 +69,7 @@ final class RequestHandler
         if ($data = $this->redis->get($key)) {
             $data = unserialize($data);
 
-            return new JsonResponse($data['content'], $statusCode, [
+            return new Response($data['content'], $statusCode, [
                 'Content-Type' => $data['content-type'],
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => 'cache',
