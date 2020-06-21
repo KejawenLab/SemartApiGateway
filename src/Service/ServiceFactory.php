@@ -6,7 +6,6 @@ namespace KejawenLab\SemartApiGateway\Service;
 
 use Elastica\Client;
 use Elastica\Document;
-use Ramsey\Uuid\Uuid;
 use Webmozart\Assert\Assert;
 
 /**
