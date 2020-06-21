@@ -94,7 +94,7 @@ final class RequestHandler
 
             $data = serialize([
                 'content' => $response->getContent(),
-                'content-type' => $headers['content-type'],
+                'headers' => $headers,
             ]);
 
             if (app()['gateway.verify_path'] === $request->getPathInfo()) {
@@ -109,11 +109,10 @@ final class RequestHandler
 
             $data = unserialize($data);
 
-            $symfonyResponse = new Response($data['content'], $statusCode, [
-                'Content-Type' => $data['content-type'],
+            $symfonyResponse = new Response($data['content'], $statusCode, array_merge([
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => $service->getName(),
-            ]);
+            ], $data['headers']));
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);
 

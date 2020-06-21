@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway;
 
+use Elastica\Client;
 use KejawenLab\SemartApiGateway\Command\ClearCacheCommand;
 use KejawenLab\SemartApiGateway\Command\HealthCheckCommand;
 use KejawenLab\SemartApiGateway\Handler\HandlerFactory;
@@ -47,12 +48,16 @@ final class Gateway extends Container implements HttpKernelInterface
 
     private const CONFIG_KEY = '2e048eac73bd0908d9c2afb73aa7cc688960f8e6';
 
-    public function __construct(\Redis $redis, string $environtment = 'dev')
+    public function __construct(\Redis $redis, Client $client, string $environtment = 'dev')
     {
         parent::__construct();
 
         $this['gateway.cache'] = function () use ($redis) {
             return $redis;
+        };
+
+        $this['gateway.storage'] = function () use ($client) {
+            return $client;
         };
 
         $this['gateway.cacheable'] = function () use ($environtment) {

@@ -38,7 +38,7 @@ gateway:
 >
 > * `exclude_paths` are path(s) that no request limiter applied. It mean, we don't limit request to these resources.
 >
-> * `auth.host` is the host of authentication service. if not set, global host will be applied.
+> * `auth.host` (optional) is the host of authentication service. if not set, global host will be applied.
 >
 > * `auth.login` is the login path and method. the prefix added to login path.
 >
@@ -67,15 +67,49 @@ gateway:
                 - service2
 ```
 
+>
+> * `route1` is route name
+>
+> * `path` is route path. Will be appended with prefix if prefix is set
+>
+> * `methods` is route methods
+>
+> * `priority` is route priority that follow the [symfony route priority](https://symfony.com/doc/current/routing.html#priority-parameter)
+>
+> * `public` is mark the route as public or private route
+>
+> * `cache_lifetime` is cache lifetime in second
+>
+> * `balance` is load balancer method that use in route. default roundrobin
+>
+> * `timeout` is how long we will wait the service until returning response
+>
+> * `handlers` are list of service to handle this route
+>
+
 ## Service
 
 ```yaml
 gateway:
     services:
-        service4:
+        service1:
             host: https://arsiteknologi.com:8080
             health_check_path: /status
             version: v1
             limit: 1000
             weight: 3
 ```
+
+>
+> * `service1` is service name
+>
+> * `host` (optional) is hos of service. if not set, global host will be applied.
+>
+> * `health_check_path` is path that indicate the service is up. Just return 200 to indicate service is available.
+>
+> * `version` is prefix version for service that applied to route.
+>
+> * `limit` is limit service to call if this limit reached the service is no available to give time the service to recover it self and then counter will be resetted.
+>
+> * `weight` is service weight when using weight method as balance method
+>

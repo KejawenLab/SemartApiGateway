@@ -2,7 +2,7 @@
 
 Semart Api Gateway is Fast, Simple Yet Powerful API Gateway base on Symfony Component that aim to simplify your day
 
-If you want to get more feature the we don't provide, just use [Kong](https://github.com/kong/kong)
+If you want to get more feature that we don't provide, just use [Kong](https://github.com/kong/kong)
 
 ## Requirements
 
@@ -61,6 +61,20 @@ Add to crontab
 * * * * * php gateway health-check > /dev/null
 ```
 
+## Features
+
+* Easy to Install and Configure
+* Api Versioning
+* Public and Private Api
+* Load Balancer
+* Response Cache
+* Authentication Using JWT
+* Resource Limiter
+* Request Limiter
+* Request Timeout
+* Health Check
+* Statistic
+
 ## Documentation
 
 See [The Doc](doc.md)
@@ -81,7 +95,7 @@ See [The Doc](doc.md)
 - [X] Api Versioning Per Service
 - [X] Public and Private Api
 - [X] Implement Rate Limiter
-    - [X] Limit Resource
+    - [X] Limit Resource (Not Work When Using Random Balancer)
     - [X] Limit Request
     - [X] Request Timeout
 - [X] Implement Health Check
