@@ -11,6 +11,8 @@ If you want to get more feature that we don't provide, just use [Kong](https://g
 >
 > * Redis
 >
+> * Elasticsearch 7.X
+>
 > * PHP Redis Extension
 >
 
@@ -35,6 +37,8 @@ cp .env.example .env
 cp gateway.yaml.example gateway.yaml
 cp routes.yaml.example routes.yaml
 composer update
+php gateway create-index
+php -S localhost:8000 -t public/
 ```
 
 ## Configuration

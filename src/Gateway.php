@@ -6,6 +6,7 @@ namespace KejawenLab\SemartApiGateway;
 
 use Elastica\Client;
 use KejawenLab\SemartApiGateway\Command\ClearCacheCommand;
+use KejawenLab\SemartApiGateway\Command\CreateIndexCommand;
 use KejawenLab\SemartApiGateway\Command\HealthCheckCommand;
 use KejawenLab\SemartApiGateway\Handler\HandlerFactory;
 use KejawenLab\SemartApiGateway\Handler\HandlerInterface;
@@ -210,7 +211,7 @@ final class Gateway extends Container implements HttpKernelInterface
         };
 
         $this['gateway.statistic'] = function ($c) {
-            return new Statistic($c['gateway.service_factory'], $c['gateway.cache']);
+            return new Statistic($c['gateway.service_factory'], $c['gateway.storage']);
         };
 
         $this['gateway.request_handler'] = function ($c) {
@@ -228,7 +229,7 @@ final class Gateway extends Container implements HttpKernelInterface
     private function buildServices(array $config): void
     {
         $this['gateway.service_factory'] = function ($c) use ($config) {
-            $factory = new ServiceFactory($c['gateway.cache']);
+            $factory = new ServiceFactory($c['gateway.cache'], $c['gateway.storage']);
             if ($this['gateway.cacheable']) {
                 $factory->populate();
 
@@ -378,6 +379,7 @@ final class Gateway extends Container implements HttpKernelInterface
             return [
                 new HealthCheckCommand($c['gateway.service_factory'], $c['gateway.route_factory']),
                 new ClearCacheCommand(),
+                new CreateIndexCommand($c['gateway.storage'], $this['gateway.service_factory']),
             ];
         };
     }

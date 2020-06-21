@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway\Service;
 
+use Elastica\Client;
+use Elastica\Document;
+use Ramsey\Uuid\Uuid;
 use Webmozart\Assert\Assert;
 
 /**
@@ -11,18 +14,23 @@ use Webmozart\Assert\Assert;
  */
 final class ServiceFactory
 {
-    private const CACHE_KEY = '1d24fe1d841f18d70849097eb5e4d0b57a1c5b18';
+    public const CACHE_KEY = '1d24fe1d841f18d70849097eb5e4d0b57a1c5b18';
+
+    public const INDEX_NAME = 'semart_gateway_services';
 
     private $redis;
+
+    private $elasticsearch;
 
     /**
      * @var Service[]
      */
     private $services;
 
-    public function __construct(\Redis $redis)
+    public function __construct(\Redis $redis, Client $elasticsearch)
     {
         $this->redis = $redis;
+        $this->elasticsearch = $elasticsearch;
         $this->services = [];
     }
 
@@ -40,12 +48,13 @@ final class ServiceFactory
     public function persist(): void
     {
         $services = [];
+        $serviceIndex = $this->elasticsearch->getIndex(static::INDEX_NAME);
         foreach ($this->services as $service) {
             $services[] = $service->toArray();
+            $serviceIndex->updateDocument(new Document(sha1(sprintf('%s_%s', static::CACHE_KEY, $service->getName())), $service->toArray()));
         }
 
         $this->redis->set(static::CACHE_KEY, serialize($services));
-
         app()->pool(static::CACHE_KEY);
     }
 

@@ -4,6 +4,12 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway\Service;
 
+use Elastica\Client;
+use Elastica\Document;
+use Elastica\Query\BoolQuery;
+use Elastica\Query\Match;
+use Elastica\Search;
+use Ramsey\Uuid\Uuid;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -11,65 +17,34 @@ use Symfony\Component\HttpFoundation\Response;
  */
 final class Statistic
 {
-    private const CACHE_KEY = 'f8d0a9964a7b2285f2af4f599697182e3417a5cc';
-
     public const ROUTE_NAME = 'gateway_statistic';
 
     public const ROUTE_PATH = 'gateway/statistic';
 
+    public const INDEX_NAME = 'semart_gateway_statistic';
+
     private $factory;
 
-    private $redis;
+    private $elasticsearch;
 
-    public function __construct(ServiceFactory $factory, \Redis $redis)
+    public function __construct(ServiceFactory $factory, Client $elasticsearch)
     {
         $this->factory = $factory;
-        $this->redis = $redis;
-    }
-
-    public function init(): void
-    {
-        $this->reset();
-    }
-
-    public function reset(): void
-    {
-        $this->redis->del(static::CACHE_KEY);
-        $statistic = [];
-        $services = $this->factory->getServices();
-        foreach ($services as $service) {
-            $statistic[$service->getName()] = [];
-        }
-
-        $this->redis->set(static::CACHE_KEY, serialize($statistic));
+        $this->elasticsearch = $elasticsearch;
     }
 
     public function statistic(): array
     {
         $result = [];
         $services = $this->factory->getServices();
-        $statistic = $this->getStat();
         foreach ($services as $service) {
-            if (!array_key_exists($service->getName(), $statistic)) {
-                $result[$service->getName()] = [
-                    'hit' => 0,
-                    'uptime' => $service->isEnabled()? 100: 0,
-                ];
+            $success = $this->getSuccess($service);
+            $fail = $this->getFail($service);
+            $total = $success + $fail;
 
-                continue;
-            }
-
-            $hit = count($statistic[$service->getName()]);
-            $uptime = count(array_filter($statistic[$service->getName()], function ($v) {
-                if ($v['code'] >= Response::HTTP_OK && $v['code'] < Response::HTTP_INTERNAL_SERVER_ERROR) {
-                    return true;
-                }
-
-                return false;
-            }));
             $result[$service->getName()] = [
-                'hit' => $hit,
-                'uptime' => 0 === $hit ? 100: (($uptime / $hit) * 100),
+                'hit' => $total,
+                'uptime' => 0 === $total? 100: (($success / $total) * 100),
             ];
         }
 
@@ -78,36 +53,63 @@ final class Statistic
 
     public function stat(Service $service, array $data): void
     {
-        $statistic = $this->getStat();
-        if (!array_key_exists($service->getName(), $statistic)) {
-            $statistic[$service->getName()] = [];
-        }
-
-        $statistic[$service->getName()][] = $this->formatting($data);
-
-        $this->redis->set(static::CACHE_KEY, serialize($statistic));
-    }
-
-    private function getStat(): array
-    {
-        $statistic = $this->redis->get(static::CACHE_KEY);
-        if (!$statistic) {
-            $this->init();
-
-            $statistic = $this->redis->get(static::CACHE_KEY);
-        }
-
-        return unserialize($statistic);
-    }
-
-    private function formatting(array $data): array
-    {
-        return [
+        $statisticIndex = $this->elasticsearch->getIndex(static::INDEX_NAME);
+        $statisticIndex->addDocument(new Document(Uuid::uuid4()->toString(), [
+            'service' => $service->getName(),
             'path' => $data['path'],
             'ip' => $data['ip'],
             'method' => $data['method'],
             'hit' => date('Y-m-d H:i:s'),
             'code' => $data['code'],
-        ];
+        ]));
+    }
+
+    private function getSuccess(Service $service): int
+    {
+        $statisticIndex = $this->elasticsearch->getIndex(static::INDEX_NAME);
+
+        $query = new BoolQuery();
+        $query->addShould($this->boolMatchMustQuery([
+            ['field' => 'service', 'value' => $service->getName()],
+            ['field' => 'code', 'value' => Response::HTTP_OK],
+        ]));
+        $query->addShould($this->boolMatchMustQuery([
+            ['field' => 'service', 'value' => $service->getName()],
+            ['field' => 'code', 'value' => Response::HTTP_CREATED],
+        ]));
+        $query->addShould($this->boolMatchMustQuery([
+            ['field' => 'service', 'value' => $service->getName()],
+            ['field' => 'code', 'value' => Response::HTTP_NO_CONTENT],
+        ]));
+
+        $search = new Search($this->elasticsearch);
+        $search->setQuery($query);
+        $search->addIndex($statisticIndex);
+
+        return $search->search()->count();
+    }
+
+    private function getFail(Service $service): int
+    {
+        $statisticIndex = $this->elasticsearch->getIndex(static::INDEX_NAME);
+
+        $search = new Search($this->elasticsearch);
+        $search->setQuery($this->boolMatchMustQuery([
+            ['field' => 'service', 'value' => $service->getName()],
+            ['field' => 'code', 'value' => Response::HTTP_INTERNAL_SERVER_ERROR],
+        ]));
+        $search->addIndex($statisticIndex);
+
+        return $search->search()->count();
+    }
+
+    private function boolMatchMustQuery(array $params): BoolQuery
+    {
+        $query = new BoolQuery();
+        foreach ($params as $param) {
+            $query->addMust((new Match())->setField($param['field'], $param['value']));
+        }
+
+        return $query;
     }
 }
