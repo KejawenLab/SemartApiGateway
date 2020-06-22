@@ -1,5 +1,5 @@
 gateway:
-    agregates:
+    aggregates:
         customer_order:
             path: /customer_orders/{customerId}
             priority: 0

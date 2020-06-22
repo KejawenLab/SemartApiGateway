@@ -32,7 +32,7 @@ final class HandlerFactory
             return $handler->handle($route);
         }
 
-        throw new CanNotHandleRouteException();
+        throw new CanNotHandleRouteException($route);
     }
 
     private function addHandler(HandlerInterface $handler): void

@@ -69,11 +69,10 @@ final class RequestHandler
         if ($data = $this->redis->get($key)) {
             $data = unserialize($data);
 
-            return new Response($data['content'], $statusCode, [
-                'Content-Type' => $data['content-type'],
+            return new Response($data['content'], $statusCode, array_merge([
                 'Semart-Gateway-Version' => Gateway::VERSION,
-                'Semart-Gateway-Service-Id' => 'cache',
-            ]);
+                'Semart-Gateway-Service-Id' => 'Cache',
+            ], $data['headers']));
         }
 
         if (!$service = $this->serviceResolver->resolve($routeName)) {
@@ -111,7 +110,7 @@ final class RequestHandler
 
             $symfonyResponse = new Response($data['content'], $statusCode, array_merge([
                 'Semart-Gateway-Version' => Gateway::VERSION,
-                'Semart-Gateway-Service-Id' => $service->getName(),
+                'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
             ], $data['headers']));
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);
@@ -120,18 +119,18 @@ final class RequestHandler
         } catch (NoServiceAvailableException $e) {
             $symfonyResponse = new JsonResponse(['error' => $e->getCode(), 'message' => $e->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR, [
                 'Semart-Gateway-Version' => Gateway::VERSION,
-                'Semart-Gateway-Service-Id' => $service->getName(),
+                'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
             ]);
         } catch (ClientException $e) {
             $symfonyResponse = new JsonResponse(['error' => $e->getCode(), 'message' => sprintf('Cant call URL "%s"', $service->getUrl($route->getPath()))], Response::HTTP_INTERNAL_SERVER_ERROR, [
                 'Semart-Gateway-Version' => Gateway::VERSION,
-                'Semart-Gateway-Service-Id' => $service->getName(),
+                'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
             ]);
         } finally {
             if (!isset($symfonyResponse)) {
                 $symfonyResponse = new JsonResponse(['error' => 500, 'message' => 'Cant determine error'], Response::HTTP_INTERNAL_SERVER_ERROR, [
                     'Semart-Gateway-Version' => Gateway::VERSION,
-                    'Semart-Gateway-Service-Id' => $service->getName(),
+                    'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
                 ]);
             }
 

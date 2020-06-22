@@ -110,29 +110,49 @@ final class Gateway extends Container implements HttpKernelInterface
         /** @var RouteFactory $routeFactory */
         $routeFactory = $this['gateway.route_factory'];
         foreach ($routeFactory->routes() as $route) {
-            $routeCollection->add($route->getName(), new SymfonyRoute(sprintf('%s%s', $this['gateway.prefix'], $route->getPath()), [], $route->getRequirements(), [], null, [], $route->getMethods()), $route->getPriority());
+            $routeCollection->add(
+                $route->getName(),
+                new SymfonyRoute(
+                    sprintf('%s%s', $this['gateway.prefix'], $route->getPath()),
+                    [],
+                    $route->getRequirements(),
+                    [],
+                    null,
+                    [],
+                    $route->getMethods()
+                ),
+                $route->getPriority()
+            );
         }
 
         $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
         $routeCollection->add(ServiceStatus::ROUTE_NAME, new SymfonyRoute(ServiceStatus::ROUTE_PATH, [], [], [], null, [], ['GET']));
 
-        $apiAggregationFactory = new ApiAggregationFactory($this['gateway.aggregates']);
+        $aggregateFactory = new ApiAggregationFactory($this['gateway.cache']);
 
-        $matcher = new UrlMatcher($apiAggregationFactory->registerRoutes($routeCollection), new RequestContext());
+        $matcher = new UrlMatcher($aggregateFactory->registerRoutes($routeCollection, $this['gateway.aggregates'], $this['gateway.prefix']), new RequestContext());
         $match = $matcher->matchRequest($request);
+        foreach ($match as $key => $value) {
+            $request->attributes->set($key, $value);
+        }
 
-        if ($match['_route'] === Statistic::ROUTE_NAME) {
+        if ($request->attributes->get('handler')) {
+            return $aggregateFactory->handle($request);
+        }
+
+        $routeName = $request->attributes->get('_route');
+        if ($routeName === Statistic::ROUTE_NAME) {
             return new JsonResponse($this['gateway.statistic']->statistic());
         }
 
-        if ($match['_route'] === ServiceStatus::ROUTE_NAME) {
+        if ($routeName === ServiceStatus::ROUTE_NAME) {
             return new JsonResponse($this['gateway.status']->status());
         }
 
         /** @var RequestHandler $requestHandler */
         $requestHandler = $this['gateway.request_handler'];
 
-        return $requestHandler->handle($match['_route'], $request);
+        return $requestHandler->handle($routeName, $request);
     }
 
     public function build(): void
@@ -172,12 +192,7 @@ final class Gateway extends Container implements HttpKernelInterface
         $this->buildCommands();
 
         $this['gateway.aggregates'] = function () use ($config) {
-            $aggregates = [];
-            if (array_key_exists('agregates', $config['gateway']) && is_array($config['gateway']['agregates'])) {
-                $aggregates = $config['gateway']['agregates'];
-            }
-
-            return $aggregates;
+            return $config['gateway']['aggregates'];
         };
 
         $this['gateway.trusted_ips'] = function () use ($config) {
@@ -399,10 +414,21 @@ final class Gateway extends Container implements HttpKernelInterface
         $gateway = Yaml::parse(file_get_contents(sprintf('%s/gateway.yaml', GATEWAY_ROOT)));
         $routes = Yaml::parse(file_get_contents(sprintf('%s/routes.yaml', GATEWAY_ROOT)));
         $services = Yaml::parse(file_get_contents(sprintf('%s/services.yaml', GATEWAY_ROOT)));
+        $aggregates = Yaml::parse(file_get_contents(sprintf('%s/aggregates.yaml', GATEWAY_ROOT)));
 
         Assert::keyExists($gateway, 'gateway');
         Assert::keyExists($routes, 'gateway');
         Assert::keyExists($services['gateway'], 'services');
+
+        $gateway['gateway']['aggregates'] = [];
+        if (
+            is_array($aggregates) &&
+            array_key_exists('gateway', $aggregates) &&
+            array_key_exists('aggregates', $aggregates['gateway']) &&
+            is_array($aggregates['gateway']['aggregates'])
+        ) {
+            $gateway['gateway']['aggregates'] = $aggregates['gateway']['aggregates'];
+        }
 
         $gateway['gateway']['routes'] = $routes['gateway']['routes'];
         $gateway['gateway']['services'] = $services['gateway']['services'];

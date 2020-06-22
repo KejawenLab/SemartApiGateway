@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-for name in NGINX_WEBROOT
+for name in SEMART_WEBROOT
 do
     eval value=\$$name
     sed -i "s|\${${name}}|${value}|g" /etc/nginx/conf.d/default.conf
