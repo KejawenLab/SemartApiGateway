@@ -105,7 +105,8 @@ See [The Doc](doc.md)
 - [X] Implement Health Check
 - [X] Statistic Api
 - [X] Services Status Api
-- [ ] Add Docker
+- [X] Add Docker Support
+- [ ] Aggregate Api
 - [ ] Unit Testing
 
 ## License

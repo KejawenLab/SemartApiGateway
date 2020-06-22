@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace KejawenLab\SemartApiGateway;
 
 use Elastica\Client;
+use KejawenLab\SemartApiGateway\Aggregate\ApiAggregationFactory;
 use KejawenLab\SemartApiGateway\Command\ClearCacheCommand;
 use KejawenLab\SemartApiGateway\Command\CreateIndexCommand;
 use KejawenLab\SemartApiGateway\Command\HealthCheckCommand;
@@ -115,7 +116,9 @@ final class Gateway extends Container implements HttpKernelInterface
         $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
         $routeCollection->add(ServiceStatus::ROUTE_NAME, new SymfonyRoute(ServiceStatus::ROUTE_PATH, [], [], [], null, [], ['GET']));
 
-        $matcher = new UrlMatcher($routeCollection, new RequestContext());
+        $apiAggregationFactory = new ApiAggregationFactory($this['gateway.aggregates']);
+
+        $matcher = new UrlMatcher($apiAggregationFactory->registerRoutes($routeCollection), new RequestContext());
         $match = $matcher->matchRequest($request);
 
         if ($match['_route'] === Statistic::ROUTE_NAME) {
@@ -168,7 +171,16 @@ final class Gateway extends Container implements HttpKernelInterface
         $this->buildRoutes($config);
         $this->buildCommands();
 
-        $this['gateway.trusted_ips'] = function ($c) use ($config) {
+        $this['gateway.aggregates'] = function () use ($config) {
+            $aggregates = [];
+            if (array_key_exists('agregates', $config['gateway']) && is_array($config['gateway']['agregates'])) {
+                $aggregates = $config['gateway']['agregates'];
+            }
+
+            return $aggregates;
+        };
+
+        $this['gateway.trusted_ips'] = function () use ($config) {
             return $config['gateway']['trusted_ips'];
         };
 
@@ -376,11 +388,9 @@ final class Gateway extends Container implements HttpKernelInterface
     private function buildCommands(): void
     {
         $this['gateway.commands'] = function ($c) {
-            return [
-                new HealthCheckCommand($c['gateway.service_factory'], $c['gateway.route_factory']),
-                new ClearCacheCommand(),
-                new CreateIndexCommand($c['gateway.storage'], $this['gateway.service_factory']),
-            ];
+            yield new HealthCheckCommand($c['gateway.service_factory'], $c['gateway.route_factory']);
+            yield new ClearCacheCommand();
+            yield new CreateIndexCommand($c['gateway.storage'], $this['gateway.service_factory']);
         };
     }
 

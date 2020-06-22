@@ -1,5 +1,6 @@
 .idea
 vendor
+aggregates.yaml
 gateway.yaml
 routes.yaml
 services.yaml

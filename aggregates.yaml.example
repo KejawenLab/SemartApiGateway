@@ -1,0 +1,7 @@
+gateway:
+    agregates:
+        customer_order:
+            path: /customer_orders/{customerId}
+            priority: 0
+            cache_lifetime: 5
+            handler: 'KejawenLab\SemartApiGateway\Aggregate\CustomerOrder'

@@ -1,0 +1,31 @@
+version: '3.8'
+services:
+    app:
+        build: .
+        env_file:
+            - .env
+        volumes:
+            - .:/semart
+        links:
+            - session
+            - elasticsearch
+        ports:
+            - 3333:80
+        depends_on:
+            - session
+            - elasticsearch
+
+    elasticsearch:
+        image: elasticsearch:7.8.0
+        environment:
+            - node.name=es01
+            - cluster.name=es-docker-cluster
+            - discovery.type=single-node
+            - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+        ulimits:
+            memlock:
+                soft: -1
+                hard: -1
+
+    session:
+        image: redis:alpine
