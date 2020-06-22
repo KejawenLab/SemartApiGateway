@@ -59,7 +59,7 @@ final class ApiAggregationFactory
         $handler = $request->attributes->get('handler');
         $key = sprintf('%s_%s', $request->getPathInfo(), serialize($request->query->all()));
         if (!class_exists($handler)) {
-            throw new HandlerNotFoundException();
+            throw new HandlerNotFoundException($handler);
         }
 
         $handler = new $handler();

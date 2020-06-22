@@ -9,8 +9,8 @@ namespace KejawenLab\SemartApiGateway\Aggregate;
  */
 final class HandlerNotFoundException extends \InvalidArgumentException
 {
-    public function __construct()
+    public function __construct(string $handler)
     {
-        parent::__construct('Aggregate request must has handler');
+        parent::__construct(sprintf('Handler class "%s" is not found', $handler));
     }
 }
