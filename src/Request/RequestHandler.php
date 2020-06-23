@@ -72,7 +72,7 @@ final class RequestHandler
             return new Response($data['content'], $statusCode, array_merge([
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => 'Cache',
-            ], $data['headers']));
+            ], [$data['content-type']]));
         }
 
         if (!$service = $this->serviceResolver->resolve($routeName)) {
@@ -91,13 +91,11 @@ final class RequestHandler
             $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
             $execution = microtime(true) - $start;
             $statusCode = $response->getStatusCode();
-            $headers = array_map(function ($value) {
-                return $value[0];
-            }, $response->getHeaders());
+            $headers = $response->getHeaders();
 
             $data = serialize([
                 'content' => $response->getContent(),
-                'headers' => $headers,
+                'content-type' => $headers['content-type'],
             ]);
 
             if (app()->get('gateway.verify_path') === $request->getPathInfo()) {
@@ -116,7 +114,7 @@ final class RequestHandler
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
                 'Semart-Gateway-Execution' => $execution,
-            ], $data['headers']));
+            ], [$data['content-type']]));
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);
 
