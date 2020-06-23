@@ -112,7 +112,7 @@ final class Gateway extends Container implements HttpKernelInterface
         }
 
         /** @var RouteFactory $routeFactory */
-        $routeFactory = $this[RouteFactory::class];
+        $routeFactory = $this->get(RouteFactory::class);
         $prefix = $this->get('gateway.prefix');
         $routeCollection = new RouteCollection();
         foreach ($routeFactory->routes() as $route) {
@@ -200,6 +200,7 @@ final class Gateway extends Container implements HttpKernelInterface
         Assert::keyExists($config['gateway'], 'routes');
         Assert::keyExists($config['gateway'], 'trusted_ips');
         Assert::keyExists($config['gateway'], 'exclude_paths');
+        Assert::isArray($config['gateway']['trusted_ips']);
         Assert::isArray($config['gateway']['exclude_paths']);
 
         $this->buildContainers($config);
@@ -212,9 +213,9 @@ final class Gateway extends Container implements HttpKernelInterface
             return $config['gateway']['aggregates'];
         });
 
-        $this['gateway.trusted_ips'] = function () use ($config) {
+        $this->set('gateway.trusted_ips', function () use ($config) {
             return $config['gateway']['trusted_ips'];
-        };
+        });
 
         $this->set('gateway.exclude_paths', function ($c) use ($config) {
             $excludes = $config['gateway']['exclude_paths'];
