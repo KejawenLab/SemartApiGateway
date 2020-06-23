@@ -87,7 +87,6 @@ final class RequestHandler
 
             $options['headers']['Semart-Gateway-Version'] = Gateway::VERSION;
             $options['headers']['Semart-Gateway-Client-Ip'] = $request->getClientIp();
-
             $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
             $statusCode = $response->getStatusCode();
             $headers = array_map(function ($value) {
@@ -99,9 +98,9 @@ final class RequestHandler
                 'headers' => $headers,
             ]);
 
-            if (app()['gateway.verify_path'] === $request->getPathInfo()) {
+            if (app()->get('gateway.verify_path') === $request->getPathInfo()) {
                 $this->redis->set($key, $data);
-                $this->redis->expire($key, app()['gateway.auth_cache_lifetime']);
+                $this->redis->expire($key, app()->get('gateway.auth_cache_lifetime'));
                 app()->pool($key);
             } elseif ($request->isMethodCacheable() && Response::HTTP_OK === $response->getStatusCode()) {
                 $this->redis->set($key, $data);

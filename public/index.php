@@ -24,4 +24,5 @@ $app = new Gateway($redis, new Client([
 
 $GLOBALS['app'] = $app;
 
-$app->handle(Request::createFromGlobals())->send();
+$response = $app->handle(Request::createFromGlobals());
+$response->send();
