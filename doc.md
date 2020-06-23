@@ -136,5 +136,5 @@ gateway:
 >
 > * `cache_lifetime` is cache lifetime in second
 >
-> * `handler` is class to handle this aggregate query. If class has dependencies in constructor, add this class to container.
+> * `handler` is class to handle this aggregate query. The class must implement `KejawenLab\SemartApiGateway\Aggregate\AggregateRequestInterface` interface. If class has dependencies in constructor, add this class to container.
 >
