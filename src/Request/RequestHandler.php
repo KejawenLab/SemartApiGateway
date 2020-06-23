@@ -87,7 +87,9 @@ final class RequestHandler
 
             $options['headers']['Semart-Gateway-Version'] = Gateway::VERSION;
             $options['headers']['Semart-Gateway-Client-Ip'] = $request->getClientIp();
+            $start = microtime(true);
             $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
+            $execution = microtime(true) - $start;
             $statusCode = $response->getStatusCode();
             $headers = array_map(function ($value) {
                 return $value[0];
@@ -113,6 +115,7 @@ final class RequestHandler
             $symfonyResponse = new Response($data['content'], $statusCode, array_merge([
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
+                'Semart-Gateway-Execution' => $execution,
             ], $data['headers']));
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);

@@ -109,7 +109,7 @@ See [The Doc](doc.md)
 - [X] Statistic Api
 - [X] Services Status Api
 - [X] Add Docker Support
-- [ ] Aggregate Query
+- [X] Aggregate Query
 - [ ] Unit Testing
 
 ## License
