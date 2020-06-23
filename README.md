@@ -36,6 +36,8 @@ cd gateway
 cp .env.example .env
 cp gateway.yaml.example gateway.yaml
 cp routes.yaml.example routes.yaml
+cp services.yaml.example services.yaml
+cp aggregates.yaml.example aggregates.yaml
 composer update
 php gateway create-index
 php -S localhost:8000 -t public/
@@ -70,6 +72,7 @@ Add to crontab
 * Easy to Install and Configure
 * Api Versioning
 * Public and Private Api
+* Aggregate Query
 * Load Balancer
 * Response Cache
 * Authentication Using JWT
@@ -106,7 +109,7 @@ See [The Doc](doc.md)
 - [X] Statistic Api
 - [X] Services Status Api
 - [X] Add Docker Support
-- [ ] Aggregate Service
+- [ ] Aggregate Query
 - [ ] Unit Testing
 
 ## License

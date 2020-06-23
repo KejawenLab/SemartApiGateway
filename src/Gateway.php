@@ -29,7 +29,10 @@ use Pimple\Container;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
+use Symfony\Component\Routing\Exception\NoConfigurationException;
+use Symfony\Component\Routing\Exception\ResourceNotFoundException;
 use Symfony\Component\Routing\Matcher\UrlMatcher;
 use Symfony\Component\Routing\RequestContext;
 use Symfony\Component\Routing\Route as SymfonyRoute;
@@ -54,11 +57,11 @@ final class Gateway extends Container implements HttpKernelInterface
     {
         parent::__construct();
 
-        $this['gateway.cache'] = function () use ($redis) {
+        $this[\Redis::class] = function () use ($redis) {
             return $redis;
         };
 
-        $this['gateway.storage'] = function () use ($client) {
+        $this[Client::class] = function () use ($client) {
             return $client;
         };
 
@@ -69,36 +72,36 @@ final class Gateway extends Container implements HttpKernelInterface
 
     public function pool(string $key): void
     {
-        if (!$keys = $this['gateway.cache']->get(static::CACHE_KEY)) {
+        if (!$keys = $this[\Redis::class]->get(static::CACHE_KEY)) {
             $keys = serialize([]);
         }
 
         $keys = unserialize($keys);
         if (!in_array($key, $keys)) {
             $keys = array_merge($keys, [$key]);
-            $this['gateway.cache']->set(static::CACHE_KEY, serialize($keys));
+            $this[\Redis::class]->set(static::CACHE_KEY, serialize($keys));
         }
     }
 
     public function clean(): void
     {
-        if (!$keys = $this['gateway.cache']->get(static::CACHE_KEY)) {
+        if (!$keys = $this[\Redis::class]->get(static::CACHE_KEY)) {
             return;
         }
 
-        $this['gateway.cache']->del(array_merge(unserialize($keys), [static::CACHE_KEY]));
+        $this[\Redis::class]->del(array_merge(unserialize($keys), [static::CACHE_KEY]));
     }
 
     public function stat(Service $service, array $data): void
     {
-        $this['gateway.statistic']->stat($service, $data);
+        $this[Statistic::class]->stat($service, $data);
     }
 
     public function handle(Request $request, int $type = self::MASTER_REQUEST, bool $catch = true): Response
     {
         $this->build();
 
-        $requestLimiter = new RequestLimiter($this['gateway.cache']);
+        $requestLimiter = new RequestLimiter($this[\Redis::class]);
         $allow = $requestLimiter->allow($request, $this['gateway.exclude_paths']);
         $trusted = in_array($request->getClientIp(), $this['gateway.trusted_ips']);
         if ($this['gateway.cacheable'] && !$trusted && !$allow) {
@@ -108,7 +111,7 @@ final class Gateway extends Container implements HttpKernelInterface
         $routeCollection = new RouteCollection();
 
         /** @var RouteFactory $routeFactory */
-        $routeFactory = $this['gateway.route_factory'];
+        $routeFactory = $this[RouteFactory::class];
         foreach ($routeFactory->routes() as $route) {
             $routeCollection->add(
                 $route->getName(),
@@ -128,10 +131,17 @@ final class Gateway extends Container implements HttpKernelInterface
         $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
         $routeCollection->add(ServiceStatus::ROUTE_NAME, new SymfonyRoute(ServiceStatus::ROUTE_PATH, [], [], [], null, [], ['GET']));
 
-        $aggregateFactory = new ApiAggregationFactory($this['gateway.cache']);
+        $aggregateFactory = new ApiAggregationFactory($this[\Redis::class]);
 
         $matcher = new UrlMatcher($aggregateFactory->registerRoutes($routeCollection, $this['gateway.aggregates'], $this['gateway.prefix']), new RequestContext());
-        $match = $matcher->matchRequest($request);
+        try {
+            $match = $matcher->matchRequest($request);
+        } catch (NoConfigurationException $e) {
+            throw new NotFoundHttpException();
+        } catch (ResourceNotFoundException $e) {
+            throw new NotFoundHttpException();
+        }
+
         foreach ($match as $key => $value) {
             $request->attributes->set($key, $value);
         }
@@ -142,15 +152,15 @@ final class Gateway extends Container implements HttpKernelInterface
 
         $routeName = $request->attributes->get('_route');
         if ($routeName === Statistic::ROUTE_NAME) {
-            return new JsonResponse($this['gateway.statistic']->statistic());
+            return new JsonResponse($this[Statistic::class]->statistic());
         }
 
         if ($routeName === ServiceStatus::ROUTE_NAME) {
-            return new JsonResponse($this['gateway.status']->status());
+            return new JsonResponse($this[ServiceStatus::class]->status());
         }
 
         /** @var RequestHandler $requestHandler */
-        $requestHandler = $this['gateway.request_handler'];
+        $requestHandler = $this[RequestHandler::class];
 
         return $requestHandler->handle($routeName, $request);
     }
@@ -161,12 +171,12 @@ final class Gateway extends Container implements HttpKernelInterface
             $this->clean();
 
             $config = serialize($this->parseConfig());
-            $this['gateway.cache']->set(static::CONFIG_KEY, $config);
+            $this[\Redis::class]->set(static::CONFIG_KEY, $config);
         } else {
-            $config = $this['gateway.cache']->get(static::CONFIG_KEY);
+            $config = $this[\Redis::class]->get(static::CONFIG_KEY);
             if (!$config) {
                 $config = serialize($this->parseConfig());
-                $this['gateway.cache']->set(static::CONFIG_KEY, $config);
+                $this[\Redis::class]->set(static::CONFIG_KEY, $config);
             }
         }
 
@@ -208,55 +218,65 @@ final class Gateway extends Container implements HttpKernelInterface
             return $excludes;
         };
 
-        $this['gateway.handler.random'] = function ($c) {
+        $this[RandomHandler::class] = function ($c) {
             return new RandomHandler();
         };
 
-        $this['gateway.handler.roundrobin'] = function ($c) {
+        $this[RoundRobinHandler::class] = function ($c) {
             return new RoundRobinHandler();
         };
 
-        $this['gateway.handler.sticky'] = function ($c) {
+        $this[StickyHandler::class] = function ($c) {
             return new StickyHandler();
         };
 
-        $this['gateway.handler.weight'] = function ($c) {
+        $this[WeightHandler::class] = function ($c) {
             return new WeightHandler();
         };
 
-        $this['gateway.handler_factory'] = function ($c) {
+        $this[HandlerFactory::class] = function ($c) {
             return new HandlerFactory([
-                $c['gateway.handler.roundrobin'],
-                $c['gateway.handler.random'],
-                $this['gateway.handler.sticky'],
-                $this['gateway.handler.weight'],
+                $c[RoundRobinHandler::class],
+                $c[RandomHandler::class],
+                $this[StickyHandler::class],
+                $this[WeightHandler::class],
             ]);
         };
 
-        $this['gateway.service_resolver'] = function ($c) {
-            return new Resolver($c['gateway.route_factory'], $c['gateway.handler_factory'], $c['gateway.service_factory']);
+        $this[Resolver::class] = function ($c) {
+            return new Resolver($c[RouteFactory::class], $c[HandlerFactory::class], $c[ServiceFactory::class]);
         };
 
-        $this['gateway.statistic'] = function ($c) {
-            return new Statistic($c['gateway.service_factory'], $c['gateway.storage']);
+        $this[Statistic::class] = function ($c) {
+            return new Statistic($c[ServiceFactory::class], $c[Client::class]);
         };
 
-        $this['gateway.request_handler'] = function ($c) {
+        $this[RequestHandler::class] = function ($c) {
             return new RequestHandler(
-                $c['gateway.authentication_handler'],
-                $c['gateway.service_resolver'],
-                $c['gateway.service_factory'],
-                $c['gateway.route_factory'],
-                $c['gateway.cache'],
+                $c[AuthenticationHandler::class],
+                $c[Resolver::class],
+                $c[ServiceFactory::class],
+                $c[RouteFactory::class],
+                $c[\Redis::class],
                 $c['gateway.trusted_ips']
             );
         };
     }
 
+    public function get(string $service)
+    {
+        return $this[$service];
+    }
+
+    public function set(string $name, callable $value): void
+    {
+        $this[$name] = $value;
+    }
+
     private function buildServices(array $config): void
     {
-        $this['gateway.service_factory'] = function ($c) use ($config) {
-            $factory = new ServiceFactory($c['gateway.cache'], $c['gateway.storage']);
+        $this[ServiceFactory::class] = function ($c) use ($config) {
+            $factory = new ServiceFactory($c[\Redis::class], $c[Client::class]);
             if ($this['gateway.cacheable']) {
                 $factory->populate();
 
@@ -301,15 +321,15 @@ final class Gateway extends Container implements HttpKernelInterface
             return $factory;
         };
 
-        $this['gateway.status'] = function ($c) {
-            return new ServiceStatus($c['gateway.service_factory']);
+        $this[ServiceStatus::class] = function ($c) {
+            return new ServiceStatus($c[ServiceFactory::class]);
         };
     }
 
     private function buildRoutes(array $config): void
     {
-        $this['gateway.route_factory'] = function ($c) use ($config) {
-            $factory = new RouteFactory($c['gateway.cache']);
+        $this[RouteFactory::class] = function ($c) use ($config) {
+            $factory = new RouteFactory($c[\Redis::class]);
             if ($this['gateway.cacheable']) {
                 $factory->populate();
 
@@ -349,7 +369,7 @@ final class Gateway extends Container implements HttpKernelInterface
 
                 $handlers = [];
                 /** @var ServiceFactory $serviceFactory */
-                $serviceFactory = $this['gateway.service_factory'];
+                $serviceFactory = $this[ServiceFactory::class];
                 foreach ($route['handlers'] as $handler) {
                     $handlers[] = $serviceFactory->get($handler);
                 }
@@ -373,7 +393,7 @@ final class Gateway extends Container implements HttpKernelInterface
 
     private function buildAuthenticationHandler(array $config): void
     {
-        $this['gateway.authentication_handler'] = function ($c) use ($config) {
+        $this[AuthenticationHandler::class] = function ($c) use ($config) {
             if (array_key_exists('host', $config['gateway']['auth'])) {
                 $host = $config['gateway']['auth']['host'];
             } else {
@@ -391,7 +411,7 @@ final class Gateway extends Container implements HttpKernelInterface
             $c['gateway.auth_cache_lifetime'] = $config['gateway']['auth']['token']['lifetime'];
 
             return new AuthenticationHandler(
-                $c['gateway.cache'],
+                $c[\Redis::class],
                 sprintf('%s%s', $host, $c['gateway.prefix']),
                 $config['gateway']['auth']['login'],
                 $config['gateway']['auth']['token'],
@@ -403,9 +423,9 @@ final class Gateway extends Container implements HttpKernelInterface
     private function buildCommands(): void
     {
         $this['gateway.commands'] = function ($c) {
-            yield new HealthCheckCommand($c['gateway.service_factory'], $c['gateway.route_factory']);
+            yield new HealthCheckCommand($c[ServiceFactory::class], $c[RouteFactory::class]);
             yield new ClearCacheCommand();
-            yield new CreateIndexCommand($c['gateway.storage'], $this['gateway.service_factory']);
+            yield new CreateIndexCommand($c[Client::class], $this[ServiceFactory::class]);
         };
     }
 

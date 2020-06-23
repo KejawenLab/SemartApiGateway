@@ -85,6 +85,9 @@ final class RequestHandler
                 set_time_limit($route->getTimeout());
             }
 
+            $options['headers']['Semart-Gateway-Version'] = Gateway::VERSION;
+            $options['headers']['Semart-Gateway-Client-Ip'] = $request->getClientIp();
+
             $response = $client->request($request->getMethod(), $service->getUrl($route->getPath()), $options);
             $statusCode = $response->getStatusCode();
             $headers = array_map(function ($value) {

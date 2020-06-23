@@ -113,3 +113,28 @@ gateway:
 >
 > * `weight` is service weight when using weight method as balance method
 >
+
+## Aggregate Query
+
+```yaml
+gateway:
+    aggregates:
+        customer_order:
+            path: /customer_orders/{customerId}
+            priority: 0
+            cache_lifetime: 5
+            handler: 'KejawenLab\SemartApiGateway\Aggregate\CustomerOrder'
+
+```
+
+>
+> * `customer_order` is aggregate name
+>
+> * `path` is route path. Will be appended with prefix if prefix is set
+>
+> * `priority` is route priority that follow the [symfony route priority](https://symfony.com/doc/current/routing.html#priority-parameter)
+>
+> * `cache_lifetime` is cache lifetime in second
+>
+> * `handler` is class to handle this aggregate query. If class has dependencies in constructor, add this class to container.
+>

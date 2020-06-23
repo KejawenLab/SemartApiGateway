@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace KejawenLab\SemartApiGateway\Aggregate;
 
 use KejawenLab\SemartApiGateway\Gateway;
+use Pimple\Exception\UnknownIdentifierException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Route;
@@ -62,7 +63,12 @@ final class ApiAggregationFactory
             throw new HandlerNotFoundException($handler);
         }
 
-        $handler = new $handler();
+        try {
+            $handler = app()->get($handler);
+        } catch (UnknownIdentifierException $e) {
+            $handler = new $handler();
+        }
+
         if (!$handler instanceof AggregateRequestInterface) {
             throw new InvalidHandlerException();
         }
