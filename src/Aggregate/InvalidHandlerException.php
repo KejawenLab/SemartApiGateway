@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace KejawenLab\SemartApiGateway\Aggregate;
 
-use Throwable;
-
 /**
  * @author Muhamad Surya Iksanudin<surya.kejawen@gmail.com>
  */

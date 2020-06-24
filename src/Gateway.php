@@ -48,7 +48,9 @@ final class Gateway extends Container implements HttpKernelInterface
 {
     public const NAME = 'Semart Api Gateway';
 
-    public const VERSION = '0.6';
+    public const VERSION = '0.8';
+
+    private const SEMART_GATEWAY_HOME = 'SEMART_GATEWAY_HOME';
 
     private const CACHE_KEY = '56235eacd73c9387b42f56959e01b6174ac35d94';
 
@@ -75,11 +77,11 @@ final class Gateway extends Container implements HttpKernelInterface
 
     public function pool(string $key): void
     {
-        if (!$keys = $this->getCache()->get(static::CACHE_KEY)) {
-            $keys = serialize([]);
+        $keys = [];
+        if (($cached = $this->getCache()->get(static::CACHE_KEY)) && is_array($cached)) {
+            $keys = unserialize($cached);
         }
 
-        $keys = unserialize($keys);
         if (!in_array($key, $keys)) {
             $keys = array_merge($keys, [$key]);
             $this->getCache()->set(static::CACHE_KEY, serialize($keys));
@@ -88,11 +90,12 @@ final class Gateway extends Container implements HttpKernelInterface
 
     public function clean(): void
     {
-        if (!$keys = $this->getCache()->get(static::CACHE_KEY)) {
-            return;
+        $keys = [];
+        if (($cached = $this->getCache()->get(static::CACHE_KEY)) && is_array($cached)) {
+            $keys = unserialize($cached);
         }
 
-        $this->getCache()->del(array_merge(unserialize($keys), [static::CACHE_KEY]));
+        $this->getCache()->del(array_merge($keys, [static::CACHE_KEY]));
     }
 
     public function stat(Service $service, array $data): void
@@ -133,6 +136,7 @@ final class Gateway extends Container implements HttpKernelInterface
 
         $routeCollection->add(Statistic::ROUTE_NAME, new SymfonyRoute(Statistic::ROUTE_PATH, [], [], [], null, [], ['GET']));
         $routeCollection->add(ServiceStatus::ROUTE_NAME, new SymfonyRoute(ServiceStatus::ROUTE_PATH, [], [], [], null, [], ['GET']));
+        $routeCollection->add(static::SEMART_GATEWAY_HOME, new SymfonyRoute('/', [], [], [], null, [], ['GET']));
 
         $aggregateFactory = new ApiAggregationFactory($this->getCache());
         $matcher = new UrlMatcher($aggregateFactory->registerRoutes($routeCollection, $this->get('gateway.aggregates'), $prefix), new RequestContext());
@@ -144,15 +148,11 @@ final class Gateway extends Container implements HttpKernelInterface
             throw new NotFoundHttpException();
         }
 
-        foreach ($match as $key => $value) {
-            $request->attributes->set($key, $value);
+        $routeName = $match['_route'];
+        if ($routeName === static::SEMART_GATEWAY_HOME) {
+            return new JsonResponse(['name' => static::NAME, 'version' => static::VERSION]);
         }
 
-        if ($request->attributes->get('handler')) {
-            return $aggregateFactory->handle($request);
-        }
-
-        $routeName = $request->attributes->get('_route');
         if ($routeName === Statistic::ROUTE_NAME) {
             return new JsonResponse($this[Statistic::class]->statistic());
         }
@@ -161,10 +161,15 @@ final class Gateway extends Container implements HttpKernelInterface
             return new JsonResponse($this[ServiceStatus::class]->status());
         }
 
-        /** @var RequestHandler $requestHandler */
-        $requestHandler = $this[RequestHandler::class];
+        foreach ($match as $key => $value) {
+            $request->attributes->set($key, $value);
+        }
 
-        return $requestHandler->handle($routeName, $request);
+        if ($request->attributes->get('handler')) {
+            return $aggregateFactory->handle($request);
+        }
+
+        return $this->get(RequestHandler::class)->handle($routeName, $request);
     }
 
     public function build(): void

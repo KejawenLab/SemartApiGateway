@@ -21,6 +21,9 @@
         "symfony/yaml": "^5.1",
         "webmozart/assert": "^1.9"
     },
+    "suggest": {
+        "ext-swoole": "To enable Swoole Server",
+    },
     "config": {
         "optimize-autoloader": true,
         "preferred-install": {
@@ -33,5 +36,8 @@
             "KejawenLab\\SemartApiGateway\\": "src/"
         },
         "files": ["src/functions.php"]
+    },
+    "require-dev": {
+        "swoole/ide-helper": "@dev"
     }
 }

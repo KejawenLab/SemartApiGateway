@@ -72,7 +72,7 @@ final class RequestHandler
             return new Response($data['content'], $statusCode, array_merge([
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => 'Cache',
-            ], [$data['content-type']]));
+            ], ['Content-Type' => $data['content-type']]));
         }
 
         if (!$service = $this->serviceResolver->resolve($routeName)) {
@@ -114,7 +114,7 @@ final class RequestHandler
                 'Semart-Gateway-Version' => Gateway::VERSION,
                 'Semart-Gateway-Service-Id' => ucfirst($service->getName()),
                 'Semart-Gateway-Execution' => $execution,
-            ], [$data['content-type']]));
+            ], ['Content-Type' => $data['content-type']]));
         } catch (TransportExceptionInterface $e) {
             $this->serviceFactory->down($service);
 
