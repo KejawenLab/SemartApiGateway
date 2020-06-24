@@ -21,8 +21,13 @@
         "symfony/yaml": "^5.1",
         "webmozart/assert": "^1.9"
     },
+    "require-dev": {
+        "ext-swoole": "^4.4.7",
+        "phpunit/phpunit": "^8.5",
+        "swoole/ide-helper": "@dev"
+    },
     "suggest": {
-        "ext-swoole": "To enable Swoole Server",
+        "ext-swoole": "To enable Swoole Server"
     },
     "config": {
         "optimize-autoloader": true,
@@ -37,7 +42,9 @@
         },
         "files": ["src/functions.php"]
     },
-    "require-dev": {
-        "swoole/ide-helper": "@dev"
+    "autoload-dev": {
+        "psr-4": {
+            "KejawenLab\\SemartApiGateway\\Tests\\": "tests/"
+        }
     }
 }
