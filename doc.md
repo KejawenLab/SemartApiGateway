@@ -138,3 +138,45 @@ gateway:
 >
 > * `handler` is class to handle this aggregate query. The class must implement `KejawenLab\SemartApiGateway\Aggregate\AggregateRequestInterface` interface. If class has dependencies in constructor, add this class to container.
 >
+
+## Create Aggregate Query Handler
+
+#### 1. Create Class then implement `KejawenLab\SemartApiGateway\Aggregate\AggregateRequestInterface`
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace KejawenLab\SemartApiGateway\Aggregate;
+
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+
+class CustomerOrder implements AggregateRequestInterface
+{
+    public function handle(Request $request): Response
+    {
+        $customerOrders = [];
+        $client = HttpClient::create();
+
+        //Do stuff here like call Api that you need to aggregate
+
+        return new JsonResponse(['customer_orders' => $customerOrders]);
+    }
+}
+
+```
+
+#### 2. Register your class to DI Container in `di.yaml` file if needed
+
+```yaml
+containers:
+    KejawenLab\SemartApiGateway\Aggregate:
+        - 'Other\Service\Class'
+        - 'staticParameter'
+```
+
+Just two simple step to create aggregate query handler, very simple, isn't it?
