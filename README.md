@@ -70,16 +70,27 @@ Add to crontab
 ## Features
 
 * Easy to Install and Configure
+
 * Api Versioning
+
 * Public and Private Api
+
 * Aggregate Query
+
 * Load Balancer
+
 * Response Cache
+
 * Authentication Using JWT
+
 * Resource Limiter
+
 * Request Limiter
+
 * Request Timeout
+
 * Health Check
+
 * Statistic
 
 ## Documentation
@@ -110,7 +121,6 @@ See [The Doc](doc.md)
 - [X] Services Status Api
 - [X] Add Docker Support
 - [X] Aggregate Query
-- [X] Swoole Server
 - [ ] Unit Testing
 
 ## License
