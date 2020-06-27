@@ -33,7 +33,7 @@ final class Gateway extends Container implements HttpKernelInterface
 {
     public const NAME = 'Semart Api Gateway';
 
-    public const VERSION = '0.8';
+    public const VERSION = '1.0';
 
     public const SEMART_GATEWAY_HOME = 'SEMART_GATEWAY_HOME';
 
