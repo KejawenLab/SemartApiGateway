@@ -63,7 +63,7 @@ final class Gateway extends Container implements HttpKernelInterface
     public function pool(string $key): void
     {
         $keys = [];
-        if (($cached = $this->getCache()->get(static::CACHE_KEY)) && is_array($cached)) {
+        if ($cached = $this->getCache()->get(static::CACHE_KEY)) {
             $keys = unserialize($cached);
         }
 
@@ -76,7 +76,7 @@ final class Gateway extends Container implements HttpKernelInterface
     public function clean(): void
     {
         $keys = [];
-        if (($cached = $this->getCache()->get(static::CACHE_KEY)) && is_array($cached)) {
+        if ($cached = $this->getCache()->get(static::CACHE_KEY)) {
             $keys = unserialize($cached);
         }
 

@@ -95,9 +95,4 @@ final class ServiceFactory
     {
         $this->services[$service->getName()] = $service;
     }
-
-    public function __destruct()
-    {
-        $this->persist();
-    }
 }

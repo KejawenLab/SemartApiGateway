@@ -13,6 +13,8 @@ use Webmozart\Assert\Assert;
  */
 class Route
 {
+    public const DEFAULT_CACHE_LIFETIME = 7;
+
     private $name;
 
     private $path;

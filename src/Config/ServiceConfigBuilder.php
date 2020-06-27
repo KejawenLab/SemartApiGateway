@@ -61,6 +61,8 @@ final class ServiceConfigBuilder implements ConfigBuilderInterface
                 $factory->addService(new Service($name, sprintf('%s%s', $host, $container->get('gateway.prefix')), $healthCheck, $version, $limit, $weight));
             }
 
+            $factory->persist();
+
             return $factory;
         });
 

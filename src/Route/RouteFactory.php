@@ -67,9 +67,4 @@ final class RouteFactory
     {
         $this->routes[$route->getName()] = $route;
     }
-
-    public function __destruct()
-    {
-        $this->persist();
-    }
 }

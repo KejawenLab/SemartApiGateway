@@ -64,7 +64,7 @@ final class RouteConfigBuilder implements ConfigBuilderInterface
                     $handlers[] = $serviceFactory->get($handler);
                 }
 
-                $cacheLifetime = 0;
+                $cacheLifetime = Route::DEFAULT_CACHE_LIFETIME;
                 if (array_key_exists('cache_lifetime', $route)) {
                     $cacheLifetime = (int) $route['cache_lifetime'];
                 }
@@ -76,6 +76,7 @@ final class RouteConfigBuilder implements ConfigBuilderInterface
 
                 $factory->addRoute(new Route($name, $route['path'], $handlers, $methods, $balance, $priority, $public, $requirements, 0, $cacheLifetime, $timeout));
             }
+            $factory->persist();
 
             return $factory;
         });
